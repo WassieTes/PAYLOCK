@@ -1,0 +1,23 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: paylock
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "......"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:- ......}"
+      POSTGRES_DB: .......
+    ports:
+      - "... : ..."
+    volumes:
+      - paylock-fresh-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U '.......' -d ......"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ......-fresh-data:
+    name: ....-fresh-data
