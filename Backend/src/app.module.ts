@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MerchantsModule } from './merchants/merchants.module';
 import { CreateMerchantsTable1792961004704 } from './merchants/migrations/1792961004704-CreateMerchantsTable';
+import { AuthModule } from './auth/auth.module';
 
 
 @Module({
@@ -30,6 +31,8 @@ import { CreateMerchantsTable1792961004704 } from './merchants/migrations/179296
     }),
 
     MerchantsModule,
+
+    AuthModule,
 
 
   ],
