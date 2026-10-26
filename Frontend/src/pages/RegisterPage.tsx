@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   Eye,
   EyeOff,
   Fingerprint,
@@ -21,15 +22,9 @@ const API_URL = (
 const businessTypes = [
   { value: "individual", label: "Individual" },
   { value: "sole_proprietorship", label: "Sole proprietorship" },
-  { value: "company", label: "Registered company" },
+  { value: "company", label: "Company" },
   { value: "other", label: "Other" },
-];
-
-const benefits = [
-  "Review receipts from one merchant dashboard",
-  "Access developer tools from the same account",
-  "Build safer payment-verification workflows",
-];
+] as const;
 
 type RegisterForm = {
   businessName: string;
@@ -39,6 +34,12 @@ type RegisterForm = {
   industry: string;
   phone: string;
 };
+
+const benefits = [
+  "Review receipts from one merchant dashboard",
+  "Access developer tools from the same account",
+  "Build safer payment-verification workflows",
+];
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -70,18 +71,13 @@ export default function RegisterPage() {
     const industry = form.industry.trim();
     const phone = form.phone.trim();
 
-    if (businessName.length > 150) {
-      setError("Business name must be 150 characters or fewer.");
+    if (!businessName || businessName.length > 150) {
+      setError("Enter a business name with no more than 150 characters.");
       return;
     }
 
-    if (form.password.length < 8) {
-      setError("Your password must contain at least 8 characters.");
-      return;
-    }
-
-    if (form.password.length > 72) {
-      setError("Your password must contain no more than 72 characters.");
+    if (form.password.length < 8 || form.password.length > 72) {
+      setError("Your password must contain between 8 and 72 characters.");
       return;
     }
 
@@ -92,6 +88,15 @@ export default function RegisterPage() {
 
     if (phone.length > 30) {
       setError("Phone number must be 30 characters or fewer.");
+      return;
+    }
+
+    const validBusinessType = businessTypes.some(
+      (type) => type.value === form.businessType,
+    );
+
+    if (form.businessType && !validBusinessType) {
+      setError("Please select a valid business type.");
       return;
     }
 
@@ -153,14 +158,9 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-[#f4f5ee] text-[#173c2d]">
-      {/* Top navigation */}
       <header className="border-b border-[#e5e9df] bg-[#fafbf7]/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link
-            to="/"
-            className="group inline-flex items-center gap-3"
-            aria-label="PAYLOCK home"
-          >
+          <Link to="/" className="group inline-flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#173f30] text-[#d1e4c6] transition-colors group-hover:bg-[#24543e]">
               <ShieldCheck size={23} strokeWidth={1.8} />
             </span>
@@ -180,9 +180,8 @@ export default function RegisterPage() {
         </div>
       </header>
 
-      {/* Registration layout */}
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-16 lg:py-16">
-        {/* Left brand panel */}
+        {/* Brand panel */}
         <aside className="relative overflow-hidden rounded-3xl bg-[#143b2d] p-7 text-white shadow-[0_24px_70px_-35px_rgba(20,59,45,0.55)] sm:p-10 lg:sticky lg:top-8 lg:min-h-[660px] lg:p-11">
           <div
             aria-hidden="true"
@@ -212,7 +211,6 @@ export default function RegisterPage() {
               in one place, built for a safer digital commerce experience.
             </p>
 
-            {/* Visual payment status card */}
             <div className="mt-9 rounded-2xl border border-white/10 bg-white/[0.055] p-5 backdrop-blur-sm sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -274,7 +272,7 @@ export default function RegisterPage() {
           </div>
         </aside>
 
-        {/* Form panel */}
+        {/* Registration form */}
         <section className="min-w-0 rounded-3xl border border-[#e5e9df] bg-white p-6 shadow-[0_16px_55px_-40px_rgba(23,60,45,0.25)] sm:p-9 lg:p-10">
           <div className="mb-8">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6c8b61]">
@@ -333,26 +331,42 @@ export default function RegisterPage() {
                   />
                 </div>
 
+                {/* Business type dropdown */}
                 <div>
                   <label htmlFor="businessType" className={labelClass}>
                     Business type
                   </label>
-                  <select
-                    id="businessType"
-                    name="businessType"
-                    value={form.businessType}
-                    onChange={(e) =>
-                      updateField("businessType", e.target.value)
-                    }
-                    className={`${inputClass} appearance-none`}
-                  >
-                    <option value="">Select business type (optional)</option>
-                    {businessTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
+
+                  <div className="relative">
+                    <select
+                      id="businessType"
+                      name="businessType"
+                      value={form.businessType}
+                      onChange={(e) =>
+                        updateField("businessType", e.target.value)
+                      }
+                      className={`${inputClass} appearance-none pr-11`}
+                    >
+                      <option value="">
+                        Select your business type (optional)
                       </option>
-                    ))}
-                  </select>
+                      {businessTypes.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <ChevronDown
+                      size={18}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#64816a]"
+                    />
+                  </div>
+
+                  <p className="mt-2 text-xs leading-5 text-[#8a958a]">
+                    Choose the option that best describes your business.
+                  </p>
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -396,7 +410,7 @@ export default function RegisterPage() {
 
             <div className="h-px bg-[#e9ede5]" />
 
-            {/* Account credentials */}
+            {/* Credentials */}
             <div>
               <div className="mb-4 flex items-center gap-2.5">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#edf3e8] text-[#315e43]">
@@ -467,14 +481,12 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   <p className="mt-2 text-xs leading-5 text-[#8a958a]">
-                    Use at least 8 characters. Choose a password you don't use
-                    for other accounts.
+                    Use between 8 and 72 characters.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* API/backend errors */}
             {error && (
               <div
                 role="alert"
@@ -484,34 +496,31 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Submit */}
-            <div className="pt-1">
-              <button
-                type="submit"
-                disabled={loading}
-                className="group flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#173f30] px-5 py-4 text-sm font-semibold text-white shadow-[0_10px_25px_-15px_rgba(23,63,48,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#24543e] hover:shadow-[0_14px_30px_-15px_rgba(23,63,48,0.7)] disabled:cursor-not-allowed disabled:opacity-65 disabled:hover:translate-y-0"
-              >
-                {loading ? (
-                  <>
-                    <LoaderCircle size={18} className="animate-spin" />
-                    Creating your account...
-                  </>
-                ) : (
-                  <>
-                    Create merchant account
-                    <ArrowRight
-                      size={18}
-                      className="transition-transform group-hover:translate-x-1"
-                    />
-                  </>
-                )}
-              </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#173f30] px-5 py-4 text-sm font-semibold text-white shadow-[0_10px_25px_-15px_rgba(23,63,48,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-65 disabled:hover:translate-y-0"
+            >
+              {loading ? (
+                <>
+                  <LoaderCircle size={18} className="animate-spin" />
+                  Creating your account...
+                </>
+              ) : (
+                <>
+                  Create merchant account
+                  <ArrowRight
+                    size={18}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
+                </>
+              )}
+            </button>
 
-              <p className="mt-4 text-center text-xs leading-6 text-[#899389]">
-                By creating an account, you agree to use PAYLOCK responsibly and
-                provide accurate business information.
-              </p>
-            </div>
+            <p className="text-center text-xs leading-6 text-[#899389]">
+              Please provide accurate business information and use your account
+              responsibly.
+            </p>
           </form>
 
           <div className="mt-7 flex items-start gap-3 rounded-xl border border-[#e3eadd] bg-[#f5f7f0] p-4">
@@ -521,14 +530,13 @@ export default function RegisterPage() {
                 One account, two ways to work.
               </span>{" "}
               Your merchant account is designed to connect the dashboard and
-              developer tools. API access depends on the backend features
-              available to your account.
+              developer tools. API access depends on the features available in
+              the backend.
             </p>
           </div>
         </section>
       </div>
 
-      {/* Bottom bar */}
       <footer className="border-t border-[#e1e6dc] bg-[#eef1e8]">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-5 text-center text-xs text-[#849084] sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:text-left">
           <Link
