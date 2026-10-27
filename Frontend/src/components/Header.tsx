@@ -13,6 +13,9 @@ const links = [
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const isAuthenticated = Boolean(
+    localStorage.getItem("paylock_access_token"),
+  );
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#104c27]/10 bg-white shadow-sm">
@@ -26,7 +29,7 @@ export default function Header() {
           </span>
         </a>
 
-        <nav className="hidden items-center gap-5 text-xl font-medium text-[#514a3e] 2xl:gap-6 xl:flex">
+        <nav className=" items-center space-x-10 text-sm font-medium text-[#514a3e] 2xl:gap-6 xl:flex">
           {links.map((link) => (
             <a
               key={link.label}
@@ -40,18 +43,29 @@ export default function Header() {
 
         <div className="hidden shrink-0 items-center gap-5 lg:flex">
           <Link
-            to="/login"
-            className="inline-block whitespace-nowrap transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-110 hover:text-[#104c27] hover:drop-shadow-[0_0_8px_rgba(16,76,39,0.45)]"
+            to={isAuthenticated ? "/dashboard" : "/login"}
+            className={
+              isAuthenticated
+                ? "inline-flex items-center gap-3 whitespace-nowrap rounded-xl bg-[#104c27] px-6 py-4 text-lg font-bold text-[#f2c68e] transition hover:bg-[#0b3b1e]"
+                : "inline-block whitespace-nowrap transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-110 hover:text-[#104c27] hover:drop-shadow-[0_0_8px_rgba(16,76,39,0.45)]"
+            }
           >
-            Sign in
+            {isAuthenticated ? (
+              <>
+                Go to dashboard <ArrowRight size={18} />
+              </>
+            ) : (
+              "Sign in"
+            )}
           </Link>
-
-          <Link
-            to="/register"
-            className="inline-flex items-center gap-3 whitespace-nowrap rounded-xl bg-[#104c27] px-6 py-4 text-lg font-bold text-[#f2c68e] transition hover:bg-[#0b3b1e]"
-          >
-            Create account <ArrowRight size={18} />
-          </Link>
+          {!isAuthenticated && (
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-3 whitespace-nowrap rounded-xl bg-[#104c27] px-6 py-4 text-lg font-bold text-[#f2c68e] transition hover:bg-[#0b3b1e]"
+            >
+              Create account <ArrowRight size={18} />
+            </Link>
+          )}
         </div>
 
         <button
@@ -80,24 +94,29 @@ export default function Header() {
             ))}
 
             <Link
-              to="/login"
+              to={isAuthenticated ? "/dashboard" : "/login"}
               onClick={() => setMenuOpen(false)}
-              className="rounded-lg px-4 py-3 text-base font-semibold hover:bg-[#104c27]/5"
+              className={
+                isAuthenticated
+                  ? "mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#104c27] px-4 py-3 text-base font-bold text-[#f2c68e]"
+                  : "rounded-lg px-4 py-3 text-base font-semibold hover:bg-[#104c27]/5"
+              }
             >
-              Sign in
+              {isAuthenticated ? "Go to dashboard" : "Sign in"}
+              {isAuthenticated && <ArrowRight size={17} />}
             </Link>
-
-            <Link
-              to="/register"
-              onClick={() => setMenuOpen(false)}
-              className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#104c27] px-4 py-3 text-base font-bold text-[#f2c68e]"
-            >
-              Create account <ArrowRight size={17} />
-            </Link>
+            {!isAuthenticated && (
+              <Link
+                to="/register"
+                onClick={() => setMenuOpen(false)}
+                className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#104c27] px-4 py-3 text-base font-bold text-[#f2c68e]"
+              >
+                Create account <ArrowRight size={17} />
+              </Link>
+            )}
           </div>
         </nav>
       )}
     </header>
   );
 }
-
