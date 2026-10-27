@@ -1,12 +1,13 @@
 import { useState } from "react";
 import {
   Activity,
-  Bell,
   ChevronDown,
+  House,
   LogOut,
   Menu,
   UserRound,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { MerchantProfile } from "../../types/verification";
 
 interface Props {
@@ -46,22 +47,25 @@ export default function DashboardHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Link
+          to="/"
+          aria-label="Go to PAYLOCK homepage"
+          title="Go to homepage"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#E6EAE4] px-3 py-2.5 text-sm font-semibold text-[#526057] transition hover:bg-[#F6F8F5] hover:text-[#174D38]"
+        >
+          <House size={17} />
+          <span className="hidden md:inline">Homepage</span>
+        </Link>
+
         <button
           type="button"
           onClick={onRefresh}
           title="Refresh verification records"
+          aria-label="Refresh verification records"
           className="rounded-xl border border-[#E6EAE4] p-2.5 text-[#64736A] transition hover:bg-[#F6F8F5]"
         >
           <Activity size={18} />
-        </button>
-
-        <button
-          type="button"
-          title="Notifications"
-          className="relative rounded-xl border border-[#E6EAE4] p-2.5 text-[#64736A] hover:bg-[#F6F8F5]"
-        >
-          <Bell size={18} />
         </button>
 
         <div className="hidden h-8 w-px bg-[#E7EBE4] sm:block" />

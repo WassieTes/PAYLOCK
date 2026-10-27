@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import {
   CircleHelp,
   Code2,
@@ -22,7 +22,7 @@ const navigation = [
   { label: "Upload receipt", icon: UploadCloud, path: "/dashboard/upload" },
   { label: "History", icon: History, path: "/dashboard/history" },
   { label: "Needs review", icon: ShieldAlert, path: "/dashboard/review" },
-  { label: "API & webhooks", icon: Code2, path: "/dashboard/developer" },
+  { label: "API & webhooks", icon: Code2, path: "/developer" },
   { label: "Settings", icon: Settings2, path: "/dashboard/settings" },
   { label: "Help & support", icon: CircleHelp, path: "/dashboard/help" },
 ];
@@ -49,18 +49,24 @@ export default function DashboardSidebar({
         }`}
       >
         <div className="flex h-[76px] items-center gap-3 border-b border-[#EEF0EB] px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#174D38] text-white">
-            <ShieldCheck size={23} />
-          </div>
+          <Link
+            to="/"
+            aria-label="PAYLOCK home"
+            className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#174D38]"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#174D38] text-white">
+              <ShieldCheck size={23} />
+            </div>
 
-          <div>
-            <p className="text-xl font-bold tracking-tight text-[#174D38]">
-              PAYLOCK
-            </p>
-            <p className="text-[11px] tracking-wide text-[#7A887F]">
-              MERCHANT CONSOLE
-            </p>
-          </div>
+            <span>
+              <span className="block text-xl font-bold tracking-tight text-[#174D38]">
+                PAYLOCK
+              </span>
+              <span className="block text-[11px] tracking-wide text-[#7A887F]">
+                MERCHANT CONSOLE
+              </span>
+            </span>
+          </Link>
 
           <button
             type="button"
@@ -79,28 +85,31 @@ export default function DashboardSidebar({
 
           <nav className="space-y-1">
             {navigation.map(({ label, icon: Icon, path }) => {
-              const active = path === "/dashboard";
-
               return (
-                <Link
+                <NavLink
                   key={label}
                   to={path}
+                  end={path === "/dashboard" || path === "/developer"}
                   onClick={onClose}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                    active
+                  className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                    isActive
                       ? "bg-[#EAF2EC] text-[#174D38]"
                       : "text-[#64736A] hover:bg-[#F6F8F5] hover:text-[#174D38]"
                   }`}
                 >
-                  <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
-                  <span>{label}</span>
+                  {({ isActive }) => (
+                    <>
+                      <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                      <span>{label}</span>
 
-                  {label === "Needs review" && reviewCount > 0 && (
-                    <span className="ml-auto rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
-                      {reviewCount}
-                    </span>
+                      {label === "Needs review" && reviewCount > 0 && (
+                        <span className="ml-auto rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
+                          {reviewCount}
+                        </span>
+                      )}
+                    </>
                   )}
-                </Link>
+                </NavLink>
               );
             })}
           </nav>
@@ -116,7 +125,7 @@ export default function DashboardSidebar({
               A receipt screenshot alone does not confirm that money arrived.
             </p>
             <Link
-              to="/dashboard/developer"
+              to="/developer"
               className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#174D38]"
             >
               Explore the API <Code2 size={13} />

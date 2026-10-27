@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { MerchantsModule } from './merchants/merchants.module';
 import { CreateMerchantsTable1792961004704 } from './merchants/migrations/1792961004704-CreateMerchantsTable';
 import { AuthModule } from './auth/auth.module';
+import { DevelopersModule } from './developers/developers.module';
 
 
 @Module({
@@ -26,13 +27,15 @@ import { AuthModule } from './auth/auth.module';
         database: config.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
         migrations: [CreateMerchantsTable1792961004704],
-        synchronize: false,
+        synchronize: true,
       }),
     }),
 
     MerchantsModule,
 
     AuthModule,
+
+    DevelopersModule,
 
 
   ],

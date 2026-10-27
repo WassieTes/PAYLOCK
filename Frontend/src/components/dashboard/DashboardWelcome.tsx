@@ -1,16 +1,14 @@
 import { useRef } from "react";
-import { Activity, UploadCloud } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 
 interface Props {
   businessName: string;
   onFileSelected: (file: File) => void;
-  onRefresh: () => void;
 }
 
 export default function DashboardWelcome({
   businessName,
   onFileSelected,
-  onRefresh,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,15 +30,6 @@ export default function DashboardWelcome({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DDE4DB] bg-white px-4 py-3 text-sm font-semibold text-[#294738] transition hover:bg-[#F5F7F2]"
-        >
-          <Activity size={17} />
-          Refresh
-        </button>
-
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
