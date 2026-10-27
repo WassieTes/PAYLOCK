@@ -14,38 +14,45 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DevelopersService } from './developers.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { VerificationEngineService } from '../person2/verification-engine.service';
 
-@Controller('api/v1')
+@Controller()
 export class DevelopersController {
-  constructor(private readonly devService: DevelopersService) {}
+  constructor(
+    private readonly devService: DevelopersService,
+    private readonly verificationService: VerificationEngineService,
+  ) { }
 
   // ==================== DASHBOARD MANAGEMENT ====================
-
+  @UseGuards(JwtAuthGuard)
   @Get('dashboard/keys')
   async getKeys(@Req() req: any) {
-    const merchantId = req.user?.id || req.user?.merchantId;
+    const merchantId = req.user?.merchantId;
     return this.devService.listKeys(merchantId);
-  }
 
+  }
+  @UseGuards(JwtAuthGuard)
   @Post('dashboard/keys')
   async generateKey(@Req() req: any, @Body('name') name: string) {
-    const merchantId = req.user?.id || req.user?.merchantId;
+    const merchantId = req.user?.merchantId;
     return this.devService.createKey(merchantId, name);
   }
-
+  @UseGuards(JwtAuthGuard)
   @Delete('dashboard/keys/:id')
   async revokeKey(@Req() req: any, @Param('id') id: string) {
-    const merchantId = req.user?.id || req.user?.merchantId;
+    const merchantId = req.user?.merchantId;
     return this.devService.revokeKey(merchantId, id);
   }
-
+  @UseGuards(JwtAuthGuard)
   @Get('dashboard/logs')
   async getLogs(@Req() req: any) {
-    const merchantId = req.user?.id || req.user?.merchantId;
+    const merchantId = req.user?.merchantId;
     return this.devService.getLogs(merchantId);
   }
 
   // ==================== PUBLIC VERIFICATION API ====================
+
 
   @Post('verify')
   @UseGuards(ApiKeyGuard)
@@ -56,33 +63,46 @@ export class DevelopersController {
     @UploadedFile() file?: unknown,
   ) {
     const startTime = Date.now();
-    const orderId = body.orderId || `ORD-${Date.now()}`;
-    const expectedAmount = parseFloat(body.expectedAmount);
-    const expectedReceiver = body.expectedReceiver;
-    const reference = body.reference || body.receiptUrl;
+    const orderId =
+      typeof body.orderId === 'string' && body.orderId.trim()
+        ? body.orderId.trim()
+        : `ORD-${Date.now()}`;
 
-    if (!expectedAmount || !expectedReceiver) {
-      throw new BadRequestException('expectedAmount and expectedReceiver are required.');
+    const expectedAmount = body.expectedAmount;
+    const expectedReceiver =
+      typeof body.expectedReceiver === 'string'
+        ? body.expectedReceiver
+        : '';
+
+    const reference =
+      typeof body.reference === 'string' ? body.reference.trim() : '';
+
+    const receiptUrl =
+      typeof body.receiptUrl === 'string' ? body.receiptUrl.trim() : '';
+
+    if (
+      expectedAmount === undefined ||
+      expectedAmount === null ||
+      String(expectedAmount).trim() === '' ||
+      !expectedReceiver.trim()
+    ) {
+      throw new BadRequestException(
+        'expectedAmount and expectedReceiver are required.',
+      );
     }
 
-    if (!file && !reference) {
-      throw new BadRequestException('Provide either a receipt image or reference number.');
-    }
-
-    // Call Person 2's verification engine here once ready:
-    // const outcome = await this.verificationService.verify(...)
-
-    // Deterministic mock scenarios for hackathon testing:
-    let status = 'VERIFIED';
-    let message = 'Transaction verified against authoritative banking ledger.';
-
-    if (reference === 'TEST_DUPLICATE' || reference === 'FT_DUPLICATE') {
-      status = 'DUPLICATE_CLAIM';
-      message = 'Transaction ID has already been claimed on another order.';
-    } else if (expectedAmount > 5000) {
-      status = 'MISMATCH';
-      message = 'Settled transaction amount does not match expected order total.';
-    }
+    const outcome = await this.verificationService.verify({
+      orderId,
+      expectedAmount,
+      expectedReceiver,
+      reference: reference || undefined,
+      receiptUrl: receiptUrl || undefined,
+      hasReceiptFile: Boolean(file),
+      orderCreatedAt:
+        typeof body.orderCreatedAt === 'string'
+          ? body.orderCreatedAt
+          : undefined,
+    });
 
     const latency = Date.now() - startTime;
 
@@ -92,7 +112,7 @@ export class DevelopersController {
       method: 'POST',
       endpoint: '/api/v1/verify',
       statusCode: 200,
-      outcome: status,
+      outcome: outcome.status,
       orderId,
       latencyMs: latency,
     });
@@ -101,15 +121,17 @@ export class DevelopersController {
       success: true,
       orderId,
       result: {
-        status,
-        canReleaseOrder: status === 'VERIFIED',
+        status: outcome.status,
+        canReleaseOrder: outcome.canReleaseOrder,
         details: {
-          transactionId: reference || 'FT26294KLS90',
-          settledAmount: expectedAmount,
-          currency: 'ETB',
-          provider: 'cbe',
-          verifiedAt: new Date().toISOString(),
-          message,
+          transactionId: outcome.transactionId,
+          settledAmount: outcome.settledAmount,
+          currency: outcome.currency,
+          provider: outcome.provider,
+          mode: outcome.mode,
+          verifiedAt: outcome.verifiedAt,
+          message: outcome.message,
+          reasons: outcome.reasons,
         },
       },
     };

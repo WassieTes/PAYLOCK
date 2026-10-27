@@ -21,7 +21,7 @@ import { DevelopersModule } from './developers/developers.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres' as const,
         host: config.get<string>('DB_HOST'),
-        port: Number(config.get<string>('DB_PORT') ?? 5435),
+        port: Number(config.get<string>('DB_PORT') ?? 5432),
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
@@ -42,4 +42,4 @@ import { DevelopersModule } from './developers/developers.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
