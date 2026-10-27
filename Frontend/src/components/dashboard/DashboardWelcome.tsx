@@ -1,17 +1,14 @@
-import { useRef } from "react";
 import { UploadCloud } from "lucide-react";
 
 interface Props {
   businessName: string;
-  onFileSelected: (file: File) => void;
+  onUpload: () => void;
 }
 
 export default function DashboardWelcome({
   businessName,
-  onFileSelected,
+  onUpload,
 }: Props) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   return (
     <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
       <div>
@@ -32,28 +29,12 @@ export default function DashboardWelcome({
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={onUpload}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#174D38] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#103C2B]"
         >
           <UploadCloud size={17} />
           Upload receipt
         </button>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp,application/pdf"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-
-            if (file) {
-              onFileSelected(file);
-            }
-
-            event.target.value = "";
-          }}
-        />
       </div>
     </div>
   );

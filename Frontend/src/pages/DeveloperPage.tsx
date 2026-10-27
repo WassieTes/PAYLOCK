@@ -17,7 +17,12 @@ import {
   LayoutDashboard,
   ShieldCheck,
 } from 'lucide-react';
-import { developerApi, type ApiKeyItem, type ApiLogItem } from '../utils/developerApi';
+import {
+  developerApi,
+  type ApiKeyItem,
+  type ApiLogItem,
+  type VerificationTestResult,
+} from '../utils/developerApi';
 
 export default function DeveloperPage() {
   const [activeTab, setActiveTab] = useState<'keys' | 'docs' | 'logs'>('keys');
@@ -34,9 +39,12 @@ export default function DeveloperPage() {
   const [langTab, setLangTab] = useState<'curl' | 'node'>('curl');
   const [testAmount, setTestAmount] = useState('850');
   const [testReceiver, setTestReceiver] = useState('1000123456789');
-  const [testRef, setTestRef] = useState('FT26294KLS90');
+  const [testRef, setTestRef] = useState('ABCD1234EF');
+  const [testReceiptUrl, setTestReceiptUrl] = useState('');
   const [isSubmittingTest, setIsSubmittingTest] = useState(false);
-  const [playgroundOutput, setPlaygroundOutput] = useState<any>(null);
+  const [playgroundOutput, setPlaygroundOutput] =
+    useState<VerificationTestResult | null>(null);
+  const [playgroundError, setPlaygroundError] = useState('');
 
   // Logs State
   const [logs, setLogs] = useState<ApiLogItem[]>([]);
@@ -99,17 +107,25 @@ export default function DeveloperPage() {
   const runPlayground = async () => {
     setIsSubmittingTest(true);
     setPlaygroundOutput(null);
-
-    const activeApiKey = keys[0]?.keyPrefix ? `pl_live_sandbox_demo_token` : 'pl_live_test_token';
-    const res = await developerApi.testVerify(activeApiKey, {
-      orderId: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-      expectedAmount: parseFloat(testAmount),
-      expectedReceiver: testReceiver,
-      reference: testRef,
-    });
-
-    setPlaygroundOutput(res);
-    setIsSubmittingTest(false);
+    setPlaygroundError('');
+    try {
+      const result = await developerApi.testVerify({
+        orderId: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+        expectedAmount: parseFloat(testAmount),
+        expectedReceiver: testReceiver,
+        reference: testRef,
+        receiptUrl: testReceiptUrl.trim() || undefined,
+      });
+      setPlaygroundOutput(result);
+    } catch (requestError) {
+      setPlaygroundError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'The verification request could not be completed.',
+      );
+    } finally {
+      setIsSubmittingTest(false);
+    }
   };
 
   return (
@@ -314,7 +330,7 @@ export default function DeveloperPage() {
     "orderId": "ORD-9418",
     "expectedAmount": 850.00,
     "expectedReceiver": "1000123456789",
-    "reference": "FT26294KLS90"
+    "receiptUrl": "https://transactioninfo.ethiotelecom.et/receipt/ABCD1234EF"
   }'`
                 : `const response = await fetch('https://api.paylock.et/api/v1/verify', {
   method: 'POST',
@@ -326,7 +342,7 @@ export default function DeveloperPage() {
     orderId: 'ORD-9418',
     expectedAmount: 850.00,
     expectedReceiver: '1000123456789',
-    reference: 'FT26294KLS90'
+    receiptUrl: 'https://transactioninfo.ethiotelecom.et/receipt/ABCD1234EF'
   })
 });
 const data = await response.json();
@@ -340,14 +356,20 @@ if (data.result.canReleaseOrder) {
               <p>
                 A screenshot is only an untrusted claim. Orders should only transition to <code>READY</code> when <code>canReleaseOrder: true</code>[cite: 2].
               </p>
+              <p>
+                Reference-only lookup is for Telebirr. For CBE and other banks, send the full HTTPS bank receipt link as <code>receiptUrl</code>.
+              </p>
             </div>
           </div>
 
-          {/* Live Playground Sandbox */}
+          {/* Provider-backed verification test */}
           <div className="rounded-2xl border border-[#EEF0EB] bg-white p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-[#174D38] flex items-center gap-2">
-              <Play size={15} /> Sandbox Test Console[cite: 2]
+              <Play size={15} /> Provider Verification Test
             </h3>
+            <p className="text-xs leading-5 text-[#718077]">
+              Uses your signed-in merchant session and the configured provider connection. This test is not simulated and does not use a browser-held API key.
+            </p>
 
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -383,8 +405,24 @@ if (data.result.canReleaseOrder) {
                   type="text"
                   value={testRef}
                   onChange={(e) => setTestRef(e.target.value)}
-                  placeholder="e.g. FT26294KLS90 or append DUP for duplicate test"
+                  placeholder="e.g. ABCD1234EF (Telebirr)"
                   className="w-full rounded-xl border border-[#E7EBE4] px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#174D38]"
+                />
+                <p className="mt-1 text-[11px] leading-4 text-[#829087]">
+                  Reference-only lookup supports Telebirr. Use a full receipt URL for CBE and other banks.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#7A887F] mb-1">
+                  Bank receipt URL (optional)
+                </label>
+                <input
+                  type="url"
+                  value={testReceiptUrl}
+                  onChange={(e) => setTestReceiptUrl(e.target.value)}
+                  placeholder="https://…"
+                  className="w-full rounded-xl border border-[#E7EBE4] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#174D38]"
                 />
               </div>
 
@@ -393,9 +431,18 @@ if (data.result.canReleaseOrder) {
                 disabled={isSubmittingTest}
                 className="w-full rounded-xl bg-[#174D38] py-2.5 text-sm font-semibold text-white hover:bg-[#123e2d] transition disabled:opacity-50"
               >
-                {isSubmittingTest ? 'Reconciling Ledger...' : 'Run Test Request[cite: 2]'}
+                {isSubmittingTest ? 'Reconciling Ledger...' : 'Verify Payment'}
               </button>
             </div>
+
+            {playgroundError && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-800"
+              >
+                {playgroundError}
+              </p>
+            )}
 
             {playgroundOutput && (
               <div className="mt-4 space-y-2 border-t border-[#EEF0EB] pt-4">
@@ -403,17 +450,17 @@ if (data.result.canReleaseOrder) {
                   <span className="font-bold text-[#7A887F]">Response:</span>
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                      playgroundOutput.result?.canReleaseOrder
+                      playgroundOutput.canReleaseOrder
                         ? 'bg-[#EAF2EC] text-[#174D38]'
                         : 'bg-red-50 text-red-700'
                     }`}
                   >
-                    {playgroundOutput.result?.canReleaseOrder ? (
+                    {playgroundOutput.canReleaseOrder ? (
                       <CheckCircle2 size={13} />
                     ) : (
                       <XCircle size={13} />
                     )}
-                    {playgroundOutput.result?.status}
+                    {playgroundOutput.status}
                   </span>
                 </div>
                 <pre className="max-h-48 overflow-y-auto rounded-xl bg-[#FAFBF9] p-3 font-mono text-[11px] text-[#3E4A42] border border-[#EEF0EB]">

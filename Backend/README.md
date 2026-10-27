@@ -31,6 +31,26 @@
 $ npm install
 ```
 
+## Receipt verification
+
+Receipt verification uses the server-side links.et API. Configure a valid
+`LINKSET_API_KEY` and `LINKSET_VERIFY_URL` (defaults to
+`https://links.et/api/verify`). PAYLOCK sends a JSON `POST` with the `x-api-key`
+header and either a `reference` or a full `url`. links.et only resolves a
+reference by itself for Telebirr; CBE FT references and some other providers
+require the bank's full receipt URL. PAYLOCK's verification endpoints accept
+that link as `receiptUrl` (or `url` on the developer API).
+
+The adapter reads the authoritative `receipt` object from links.et's
+`{ ok: true, receipt: ... }` response. It uses provider-specific amount fields
+(`transferredAmount`, `settledAmount`, or `transaction.amount`) rather than
+totals that may include fees, and compares the returned receiver with the
+merchant's expected receiver. Receipt screenshots are OCR-processed locally
+and are not forwarded to links.et. A provider error, incomplete response, or
+unmatched receiver never authorizes release. If a provider masks the receiver
+account, the result requires review rather than treating a partial account
+match as proof.
+
 ## Compile and run the project
 
 ```bash

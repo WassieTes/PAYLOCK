@@ -7,7 +7,7 @@ import {
   Menu,
   UserRound,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { MerchantProfile } from "../../types/verification";
 
 interface Props {
@@ -28,6 +28,19 @@ export default function DashboardHeader({
   onSignOut,
 }: Props) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const { pathname } = useLocation();
+  const pageTitle =
+    pathname === "/dashboard/history"
+      ? "Verification history"
+      : pathname === "/dashboard/review"
+        ? "Needs review"
+        : pathname === "/dashboard/settings"
+          ? "Business profile"
+          : pathname === "/dashboard/help"
+            ? "Help & support"
+            : pathname === "/dashboard/upload"
+              ? "Verify a receipt"
+              : "Overview";
 
   return (
     <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-[#E7EBE4] bg-white/95 px-4 backdrop-blur sm:px-7 lg:px-9">
@@ -43,7 +56,7 @@ export default function DashboardHeader({
 
         <div>
           <p className="text-sm text-[#87938B]">Merchant workspace</p>
-          <h1 className="text-base font-semibold sm:text-lg">Overview</h1>
+          <h1 className="text-base font-semibold sm:text-lg">{pageTitle}</h1>
         </div>
       </div>
 

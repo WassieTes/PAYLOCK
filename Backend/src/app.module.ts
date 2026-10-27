@@ -8,6 +8,7 @@ import { MerchantsModule } from './merchants/merchants.module';
 import { CreateMerchantsTable1792961004704 } from './merchants/migrations/1792961004704-CreateMerchantsTable';
 import { AuthModule } from './auth/auth.module';
 import { DevelopersModule } from './developers/developers.module';
+import { VerificationModule } from './verification/verification.module';
 
 
 @Module({
@@ -36,6 +37,8 @@ import { DevelopersModule } from './developers/developers.module';
     AuthModule,
 
     DevelopersModule,
+
+    VerificationModule,
 
 
   ],

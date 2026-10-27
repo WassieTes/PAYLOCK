@@ -144,12 +144,6 @@ export default function DashboardPage() {
     void loadProfile();
   }, [loadVerifications, loadProfile]);
 
-  function handleFileSelected(file: File) {
-    navigate("/dashboard/upload", {
-      state: { selectedFileName: file.name },
-    });
-  }
-
   const reviewCount = verifications.filter((item) =>
     ["needs_review", "review", "flagged", "suspicious"].includes(
       item.status.toLowerCase(),
@@ -181,7 +175,7 @@ export default function DashboardPage() {
         <main className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 sm:py-9 lg:px-9">
           <DashboardWelcome
             businessName={businessName}
-            onFileSelected={handleFileSelected}
+            onUpload={() => navigate("/dashboard/upload")}
           />
 
           <PaymentSecurityNotice />

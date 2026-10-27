@@ -1,7 +1,10 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace(/\/+$/, '');
 
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+  const token =
+    localStorage.getItem('paylock_access_token') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -22,6 +25,19 @@ export interface ApiLogItem {
   outcome: string | null;
   orderId: string | null;
   latencyMs: number;
+  createdAt: string;
+}
+
+export interface VerificationTestResult {
+  id: string;
+  orderId: string;
+  status: string;
+  canReleaseOrder: boolean;
+  transactionId: string | null;
+  settledAmount: number | null;
+  extractedAmount: number | null;
+  provider: string | null;
+  reason: string | null;
   createdAt: string;
 }
 
@@ -134,41 +150,63 @@ export const developerApi = {
     }
   },
 
-  // Test the verification endpoint directly from playground
-  async testVerify(apiKey: string, payload: { orderId: string; expectedAmount: number; expectedReceiver: string; reference: string }) {
-    try {
-      const res = await fetch(`${BASE_URL}/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      return await res.json();
-    } catch {
-      const isDuplicate = payload.reference.toUpperCase().includes('DUP');
-      const isMismatch = payload.expectedAmount > 5000;
-      return {
-        success: true,
-        orderId: payload.orderId,
-        result: {
-          status: isDuplicate ? 'DUPLICATE_CLAIM' : isMismatch ? 'MISMATCH' : 'VERIFIED',
-          canReleaseOrder: !isDuplicate && !isMismatch,
-          details: {
-            transactionId: payload.reference,
-            settledAmount: payload.expectedAmount,
-            currency: 'ETB',
-            provider: 'cbe',
-            verifiedAt: new Date().toISOString(),
-            message: isDuplicate
-              ? 'Transaction ID has already been claimed on another order.'
-              : isMismatch
-              ? 'Settled amount does not match expected order total.'
-              : 'Transaction confirmed via authoritative banking ledger.',
-          },
-        },
-      };
+  // Exercise the same authenticated verification service as the receipt form.
+  async testVerify(payload: {
+    orderId: string;
+    expectedAmount: number;
+    expectedReceiver: string;
+    reference: string;
+    receiptUrl?: string;
+  }): Promise<VerificationTestResult> {
+    const formData = new FormData();
+    formData.append('orderId', payload.orderId);
+    formData.append('expectedAmount', String(payload.expectedAmount));
+    formData.append('expectedReceiver', payload.expectedReceiver);
+    if (payload.reference) formData.append('reference', payload.reference);
+    if (payload.receiptUrl) formData.append('receiptUrl', payload.receiptUrl);
+
+    const res = await fetch(`${BASE_URL}/verifications/manual`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: formData,
+    });
+    const result: unknown = await res.json().catch(() => null);
+    if (!res.ok) {
+      const message =
+        typeof result === 'object' &&
+        result !== null &&
+        'message' in result &&
+        typeof result.message === 'string'
+          ? result.message
+          : `Verification request failed (HTTP ${res.status}).`;
+      throw new Error(message);
     }
+    if (
+      typeof result !== 'object' ||
+      result === null ||
+      !('status' in result) ||
+      typeof result.status !== 'string' ||
+      !('canReleaseOrder' in result) ||
+      typeof result.canReleaseOrder !== 'boolean' ||
+      !('id' in result) ||
+      typeof result.id !== 'string' ||
+      !('orderId' in result) ||
+      typeof result.orderId !== 'string' ||
+      !('transactionId' in result) ||
+      !(typeof result.transactionId === 'string' || result.transactionId === null) ||
+      !('settledAmount' in result) ||
+      !(typeof result.settledAmount === 'number' || result.settledAmount === null) ||
+      !('extractedAmount' in result) ||
+      !(typeof result.extractedAmount === 'number' || result.extractedAmount === null) ||
+      !('provider' in result) ||
+      !(typeof result.provider === 'string' || result.provider === null) ||
+      !('reason' in result) ||
+      !(typeof result.reason === 'string' || result.reason === null) ||
+      !('createdAt' in result) ||
+      typeof result.createdAt !== 'string'
+    ) {
+      throw new Error('The verification service returned an unexpected response.');
+    }
+    return result as VerificationTestResult;
   },
 };
