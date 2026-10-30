@@ -25,11 +25,43 @@ export function getStatus(status: string) {
     };
   }
 
+  if (normalized === "pending_provider") {
+    return {
+      label: "Waiting for provider",
+      className: "bg-sky-50 text-sky-800",
+      icon: Clock3,
+    };
+  }
+
   if (
-    ["needs_review", "review", "flagged", "suspicious"].includes(normalized)
+    ["needs_review", "review", "flagged", "suspicious", "review_required"].includes(normalized)
   ) {
     return {
       label: "Needs review",
+      className: "bg-orange-50 text-orange-700",
+      icon: AlertTriangle,
+    };
+  }
+
+  if (normalized === "mismatch") {
+    return {
+      label: "Mismatch",
+      className: "bg-rose-50 text-rose-700",
+      icon: AlertTriangle,
+    };
+  }
+
+  if (normalized === "duplicate_claim") {
+    return {
+      label: "Duplicate claim",
+      className: "bg-amber-50 text-amber-800",
+      icon: ShieldAlert,
+    };
+  }
+
+  if (normalized === "not_found") {
+    return {
+      label: "Not found",
       className: "bg-orange-50 text-orange-700",
       icon: AlertTriangle,
     };

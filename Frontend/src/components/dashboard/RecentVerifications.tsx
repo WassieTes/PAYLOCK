@@ -50,11 +50,18 @@ export default function RecentVerifications({
         (statusFilter === "verified" &&
           ["verified", "approved", "success", "confirmed"].includes(status)) ||
         (statusFilter === "pending" &&
-          ["pending", "processing", "queued"].includes(status)) ||
+          ["pending", "processing", "queued", "pending_provider"].includes(status)) ||
         (statusFilter === "review" &&
-          ["needs_review", "review", "flagged", "suspicious"].includes(
-            status,
-          )) ||
+          [
+            "needs_review",
+            "review",
+            "flagged",
+            "suspicious",
+            "review_required",
+            "mismatch",
+            "duplicate_claim",
+            "not_found",
+          ].includes(status)) ||
         (statusFilter === "failed" &&
           ["rejected", "failed", "fraudulent"].includes(status));
 
@@ -78,7 +85,7 @@ export default function RecentVerifications({
         <div>
           <h3 className="text-base font-semibold">Recent verifications</h3>
           <p className="mt-1 text-sm text-[#87938B]">
-            Real records returned by your PAYLOCK API
+            A quick look at your latest payment checks
           </p>
         </div>
 
@@ -100,7 +107,7 @@ export default function RecentVerifications({
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="rounded-xl border border-[#E2E7DF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#6C967A]"
+            className="rounded-xl border border-[#E2E7DF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#6C967A] focus:ring-4 focus:ring-[#174D38]/10"
             aria-label="Filter by verification status"
           >
             <option value="all">All statuses</option>
@@ -209,10 +216,10 @@ export default function RecentVerifications({
       <div className="flex flex-col justify-between gap-2 border-t border-[#EDF0EB] px-5 py-4 text-xs text-[#87938B] sm:flex-row sm:items-center sm:px-6">
         <p>
           {loading
-            ? "Retrieving records…"
+          ? "Loading your payment checks…"
             : error
-              ? "Unable to retrieve records"
-              : `${filteredVerifications.length} of ${verifications.length} records`}
+            ? "Your records are unavailable right now"
+            : `${filteredVerifications.length} of ${verifications.length} payment checks`}
         </p>
         {!loading && !error && verifications.length === 0 && (
           <button
@@ -223,7 +230,7 @@ export default function RecentVerifications({
             Choose a receipt
           </button>
         )}
-        <p>Data provided by your PAYLOCK backend</p>
+        <p>Payment confirmations come from your configured provider.</p>
       </div>
     </section>
   );

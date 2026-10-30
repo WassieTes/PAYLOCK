@@ -161,9 +161,11 @@ export default function RegisterPage() {
       <header className="border-b border-[#e5e9df] bg-[#fafbf7]/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <Link to="/" className="group inline-flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#173f30] text-[#d1e4c6] transition-colors group-hover:bg-[#24543e]">
-              <ShieldCheck size={23} strokeWidth={1.8} />
-            </span>
+            <img
+              src="/paylock_logo.jpg"
+              alt=""
+              className="h-10 w-10 rounded-xl object-cover transition-transform group-hover:scale-105"
+            />
             <span className="text-xl font-bold tracking-[-0.06em]">
               PAYLOCK<span className="text-[#70936a]">.</span>
             </span>
@@ -182,7 +184,7 @@ export default function RegisterPage() {
 
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-16 lg:py-16">
         {/* Brand panel */}
-        <aside className="relative overflow-hidden rounded-3xl bg-[#143b2d] p-7 text-white shadow-[0_24px_70px_-35px_rgba(20,59,45,0.55)] sm:p-10 lg:sticky lg:top-8 lg:min-h-[660px] lg:p-11">
+        <aside className="relative overflow-hidden rounded-3xl bg-[#143b2d] p-7 text-white shadow-lg sm:p-10 lg:sticky lg:top-8 lg:min-h-[660px] lg:p-11">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -right-24 -top-20 h-80 w-80 rounded-full border border-white/[0.08]"
@@ -273,7 +275,7 @@ export default function RegisterPage() {
         </aside>
 
         {/* Registration form */}
-        <section className="min-w-0 rounded-3xl border border-[#e5e9df] bg-white p-6 shadow-[0_16px_55px_-40px_rgba(23,60,45,0.25)] sm:p-9 lg:p-10">
+        <section className="min-w-0 rounded-3xl border border-[#e5e9df] bg-white p-6 shadow-sm sm:p-9 lg:p-10">
           <div className="mb-8">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6c8b61]">
               Merchant registration
@@ -499,7 +501,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#173f30] px-5 py-4 text-sm font-semibold text-white shadow-[0_10px_25px_-15px_rgba(23,63,48,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-65 disabled:hover:translate-y-0"
+              className="group flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#173f30] px-5 py-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-65 disabled:hover:translate-y-0"
             >
               {loading ? (
                 <>

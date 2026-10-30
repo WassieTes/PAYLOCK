@@ -1,58 +1,96 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Menu, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 
 const links = [
-  { label: "Home", href: "#home" },
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Features", href: "#features" },
-  { label: "Developer API", href: "#developer" },
-  { label: "Documentation", href: "#developer" },
-  { label: "FAQ", href: "#faq" },
+  { label: "Home", href: "#home", section: "home" },
+  { label: "How it works", href: "#how-it-works", section: "how-it-works" },
+  { label: "Features", href: "#features", section: "features" },
+  { label: "Pricing", href: "#pricing", section: "pricing" },
+  { label: "Developer API", href: "#developer", section: "developer" },
+  { label: "Documentation", href: "#api-reference", section: "api-reference" },
+  { label: "FAQ", href: "#faq", section: "faq" },
 ];
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("home");
   const isAuthenticated = Boolean(
     localStorage.getItem("paylock_access_token"),
   );
 
+  useEffect(() => {
+    const updateActiveSection = () => {
+      const currentSection = [...links]
+        .reverse()
+        .find(({ section }) => {
+          const element = document.getElementById(section);
+          return element && element.getBoundingClientRect().top <= 120;
+        });
+
+      setActiveSection(currentSection?.section ?? "home");
+    };
+
+    updateActiveSection();
+    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    window.addEventListener("hashchange", updateActiveSection);
+
+    return () => {
+      window.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("hashchange", updateActiveSection);
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-[#104c27]/10 bg-white shadow-sm">
-      <div className="mx-auto flex min-h-[130px] max-w-[1800px] items-center justify-between gap-6 px-5 sm:px-8 lg:px-12 2xl:px-16">
-        <a href="#home" className="flex shrink-0 items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-xl bg-[#104c27] text-[#e5bd83]">
-            <ShieldCheck size={27} />
-          </span>
-          <span className="text-3xl font-black tracking-tight text-[#102f1b]">
+    <header className="sticky top-0 z-50 border-b border-border bg-surface/95 backdrop-blur">
+      <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-5 px-5 sm:px-8">
+        <a
+          href="#home"
+          className="flex shrink-0 items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+          aria-label="PAYLOCK home"
+        >
+          <img
+            src="/paylock_logo.jpg"
+            alt=""
+            className="size-11 shrink-0 rounded-xl object-cover"
+          />
+          <span className="text-2xl font-black tracking-tight text-[#183b26] sm:text-3xl">
             PAYLOCK
           </span>
         </a>
 
-        <nav className=" items-center space-x-10 text-sm font-medium text-[#514a3e] 2xl:gap-6 xl:flex">
+        <nav
+          aria-label="Main navigation"
+          className="hidden items-center gap-5 text-sm font-medium text-ink-muted xl:flex 2xl:gap-7"
+        >
           {links.map((link) => (
             <a
               key={link.label}
               href={link.href}
-              className="inline-block whitespace-nowrap transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-110 hover:text-[#104c27] hover:drop-shadow-[0_0_8px_rgba(16,76,39,0.45)]"
+              aria-current={activeSection === link.section ? "location" : undefined}
+              className={`inline-flex min-h-10 items-center whitespace-nowrap border-b-2 transition-colors hover:text-brand ${
+                activeSection === link.section
+                  ? "border-[#557A49] text-ink"
+                  : "border-transparent"
+              }`}
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden shrink-0 items-center gap-5 lg:flex">
+        <div className="hidden shrink-0 items-center gap-4 xl:flex">
           <Link
             to={isAuthenticated ? "/dashboard" : "/login"}
             className={
               isAuthenticated
-                ? "inline-flex items-center gap-3 whitespace-nowrap rounded-xl bg-[#104c27] px-6 py-4 text-lg font-bold text-[#f2c68e] transition hover:bg-[#0b3b1e]"
-                : "inline-block whitespace-nowrap transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-110 hover:text-[#104c27] hover:drop-shadow-[0_0_8px_rgba(16,76,39,0.45)]"
+                ? "inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-[#245b37] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#183b26]"
+                : "inline-flex min-h-10 items-center whitespace-nowrap px-2 text-sm font-semibold text-ink-muted transition-colors hover:text-brand"
             }
           >
             {isAuthenticated ? (
               <>
-                Go to dashboard <ArrowRight size={18} />
+                Dashboard <ArrowRight size={16} />
               </>
             ) : (
               "Sign in"
@@ -61,9 +99,9 @@ export default function Header() {
           {!isAuthenticated && (
             <Link
               to="/register"
-              className="inline-flex items-center gap-3 whitespace-nowrap rounded-xl bg-[#104c27] px-6 py-4 text-lg font-bold text-[#f2c68e] transition hover:bg-[#0b3b1e]"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-[#245b37] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#183b26]"
             >
-              Create account <ArrowRight size={18} />
+              Get started <ArrowRight size={16} />
             </Link>
           )}
         </div>
@@ -71,7 +109,7 @@ export default function Header() {
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          className="grid size-11 place-items-center rounded-xl border border-[#104c27]/15 text-[#104c27] lg:hidden"
+          className="grid size-11 place-items-center rounded-xl border border-border text-brand transition hover:bg-surface-muted xl:hidden"
           aria-label={menuOpen ? "Close navigation" : "Open navigation"}
           aria-expanded={menuOpen}
         >
@@ -80,14 +118,22 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <nav className="border-t border-[#104c27]/10 bg-white px-5 py-4 shadow-lg lg:hidden">
-          <div className="mx-auto flex max-w-[1800px] flex-col gap-1">
+        <nav
+          aria-label="Mobile navigation"
+          className="border-t border-border bg-surface px-5 py-4 xl:hidden"
+        >
+          <div className="mx-auto flex max-w-7xl flex-col gap-1">
             {links.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="rounded-lg px-4 py-3 text-base font-medium hover:bg-[#104c27]/5"
+                aria-current={activeSection === link.section ? "location" : undefined}
+                className={`rounded-xl px-4 py-3 text-base font-medium transition-colors hover:bg-surface-muted hover:text-brand ${
+                  activeSection === link.section
+                    ? "bg-surface-muted text-ink"
+                    : "text-ink-muted"
+                }`}
               >
                 {link.label}
               </a>
@@ -98,20 +144,20 @@ export default function Header() {
               onClick={() => setMenuOpen(false)}
               className={
                 isAuthenticated
-                  ? "mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#104c27] px-4 py-3 text-base font-bold text-[#f2c68e]"
-                  : "rounded-lg px-4 py-3 text-base font-semibold hover:bg-[#104c27]/5"
+                  ? "mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#245b37] px-4 py-3 text-base font-semibold text-white"
+                  : "rounded-xl px-4 py-3 text-base font-semibold text-ink-muted hover:bg-surface-muted"
               }
             >
-              {isAuthenticated ? "Go to dashboard" : "Sign in"}
+              {isAuthenticated ? "Dashboard" : "Sign in"}
               {isAuthenticated && <ArrowRight size={17} />}
             </Link>
             {!isAuthenticated && (
               <Link
                 to="/register"
                 onClick={() => setMenuOpen(false)}
-                className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#104c27] px-4 py-3 text-base font-bold text-[#f2c68e]"
+                className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#245b37] px-4 py-3 text-base font-semibold text-white"
               >
-                Create account <ArrowRight size={17} />
+                Get started <ArrowRight size={17} />
               </Link>
             )}
           </div>

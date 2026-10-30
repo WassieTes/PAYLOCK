@@ -24,29 +24,17 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative overflow-hidden bg-[#102f25] text-white">
-      {/* Ambient background details */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-36 -top-44 h-[30rem] w-[30rem] rounded-full border border-[#c1d8b7]/[0.07]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-24 h-[22rem] w-[22rem] rounded-full border border-[#c1d8b7]/[0.07]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-48 -left-40 h-[28rem] w-[28rem] rounded-full bg-[#527c54]/10 blur-3xl"
-      />
-
+    <footer className="relative overflow-hidden border-t border-[#244D37] bg-[#183B2B] text-white">
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
         {/* Brand statement */}
         <div className="grid gap-10 border-b border-white/10 py-14 sm:py-16 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16 lg:py-20">
           <div className="max-w-2xl">
             <Link to="/" className="group inline-flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#c1d8b7]/20 bg-[#c1d8b7]/10 text-[#c1d8b7] transition-colors group-hover:bg-[#c1d8b7]/20">
-                <ShieldCheck size={26} strokeWidth={1.8} />
-              </span>
+              <img
+                src="/paylock_logo.jpg"
+                alt=""
+                className="h-12 w-12 rounded-2xl object-cover"
+              />
 
               <span className="text-2xl font-bold tracking-[-0.06em]">
                 PAYLOCK<span className="text-[#a9c99b]">.</span>
@@ -137,21 +125,29 @@ export default function Footer() {
             <ul className="mt-5 space-y-4">
               {platformLinks.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href.startsWith("#") ? link.href : undefined}
-                    className="group inline-flex items-center gap-1.5 text-sm text-[#c0cec3]/70 transition-colors hover:text-[#c1d8b7]"
-                  >
-                    {link.href.startsWith("/") ? (
-                      <Link
-                        to={link.href}
-                        className="transition-colors hover:text-[#c1d8b7]"
-                      >
+                  {link.href.startsWith("/") ? (
+                    <Link
+                      to={link.href}
+                      className="group inline-flex items-center gap-1.5 text-sm text-[#c0cec3]/70 transition-colors hover:text-[#c1d8b7]"
+                    >
+                      {link.label}
+                      <ArrowUpRight
+                        size={13}
+                        className="opacity-0 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100"
+                      />
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      className="group inline-flex items-center gap-1.5 text-sm text-[#c0cec3]/70 transition-colors hover:text-[#c1d8b7]"
+                    >
                         {link.label}
-                      </Link>
-                    ) : (
-                      link.label
-                    )}
-                  </a>
+                      <ArrowUpRight
+                        size={13}
+                        className="opacity-0 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100"
+                      />
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -177,21 +173,21 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="flex flex-col gap-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:py-7">
-          <p className="text-xs leading-6 text-[#c0cec3]/55">
+          <p className="text-xs leading-6 text-[#c0cec3]/75">
             © {currentYear} PAYLOCK. All rights reserved.
           </p>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <a
               href="#home"
-              className="text-xs text-[#c0cec3]/65 transition-colors hover:text-white"
+              className="text-xs text-[#c0cec3]/75 transition-colors hover:text-white"
             >
               Back to top ↑
             </a>
 
             <span className="hidden h-4 w-px bg-white/15 sm:block" />
 
-            <p className="text-xs text-[#c0cec3]/55">
+            <p className="text-xs text-[#c0cec3]/75">
               Built for safer digital commerce.
             </p>
           </div>
@@ -200,4 +196,3 @@ export default function Footer() {
     </footer>
   );
 }
-

@@ -11,38 +11,50 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DevelopersService } from './developers.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
+import { VerificationService } from '../verification/verification.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@Controller('api/v1')
+type AuthenticatedRequest = Request & {
+  user: {
+    merchantId: string;
+  };
+};
+
+@Controller()
 export class DevelopersController {
-  constructor(private readonly devService: DevelopersService) {}
+  constructor(
+    private readonly devService: DevelopersService,
+    private readonly verificationService: VerificationService,
+  ) {}
 
   // ==================== DASHBOARD MANAGEMENT ====================
 
   @Get('dashboard/keys')
-  async getKeys(@Req() req: any) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.listKeys(merchantId);
+  @UseGuards(JwtAuthGuard)
+  async getKeys(@Req() req: AuthenticatedRequest) {
+    return this.devService.listKeys(req.user.merchantId);
   }
 
   @Post('dashboard/keys')
-  async generateKey(@Req() req: any, @Body('name') name: string) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.createKey(merchantId, name);
+  @UseGuards(JwtAuthGuard)
+  async generateKey(@Req() req: AuthenticatedRequest, @Body('name') name: string) {
+    return this.devService.createKey(req.user.merchantId, name);
   }
 
   @Delete('dashboard/keys/:id')
-  async revokeKey(@Req() req: any, @Param('id') id: string) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.revokeKey(merchantId, id);
+  @UseGuards(JwtAuthGuard)
+  async revokeKey(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.devService.revokeKey(req.user.merchantId, id);
   }
 
   @Get('dashboard/logs')
-  async getLogs(@Req() req: any) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.getLogs(merchantId);
+  @UseGuards(JwtAuthGuard)
+  async getLogs(@Req() req: AuthenticatedRequest) {
+    return this.devService.getLogs(req.user.merchantId);
   }
 
   // ==================== PUBLIC VERIFICATION API ====================
@@ -53,63 +65,90 @@ export class DevelopersController {
   async verifyPayment(
     @Req() req: any,
     @Body() body: any,
-    @UploadedFile() file?: unknown,
+    @UploadedFile() file?: any,
   ) {
     const startTime = Date.now();
     const orderId = body.orderId || `ORD-${Date.now()}`;
     const expectedAmount = parseFloat(body.expectedAmount);
     const expectedReceiver = body.expectedReceiver;
-    const reference = body.reference || body.receiptUrl;
+    const reference =
+      typeof body.reference === 'string' ? body.reference.trim() : undefined;
+    const rawReceiptUrl =
+      typeof body.receiptUrl === 'string'
+        ? body.receiptUrl
+        : typeof body.url === 'string'
+          ? body.url
+          : undefined;
+    const receiptUrl = rawReceiptUrl?.trim();
 
     if (!expectedAmount || !expectedReceiver) {
       throw new BadRequestException('expectedAmount and expectedReceiver are required.');
     }
 
-    if (!file && !reference) {
-      throw new BadRequestException('Provide either a receipt image or reference number.');
+    if (!file && !reference && !receiptUrl) {
+      throw new BadRequestException(
+        'Provide a receipt image, transaction reference, or receipt URL.',
+      );
     }
 
-    // Call Person 2's verification engine here once ready:
-    // const outcome = await this.verificationService.verify(...)
-
-    // Deterministic mock scenarios for hackathon testing:
-    let status = 'VERIFIED';
-    let message = 'Transaction verified against authoritative banking ledger.';
-
-    if (reference === 'TEST_DUPLICATE' || reference === 'FT_DUPLICATE') {
-      status = 'DUPLICATE_CLAIM';
-      message = 'Transaction ID has already been claimed on another order.';
-    } else if (expectedAmount > 5000) {
-      status = 'MISMATCH';
-      message = 'Settled transaction amount does not match expected order total.';
+    if (receiptUrl) {
+      try {
+        const parsedReceiptUrl = new URL(receiptUrl);
+        if (
+          parsedReceiptUrl.protocol !== 'https:' ||
+          parsedReceiptUrl.username ||
+          parsedReceiptUrl.password
+        ) {
+          throw new BadRequestException(
+            'Receipt URL must be an HTTPS link without embedded credentials.',
+          );
+        }
+      } catch (error) {
+        if (error instanceof BadRequestException) throw error;
+        throw new BadRequestException('Enter a valid HTTPS receipt URL.');
+      }
     }
+
+    // Call the core shared verification engine
+    const outcome = await this.verificationService.verify({
+      merchantId: req.merchant.id,
+      orderId,
+      expectedAmount,
+      expectedReceiver,
+      reference,
+      receiptUrl,
+      fileBuffer: file?.buffer,
+      fileName: file?.originalname,
+    });
 
     const latency = Date.now() - startTime;
 
+    // Record incoming API usage
     await this.devService.recordLog({
       merchantId: req.merchant.id,
       apiKeyId: req.apiKey.id,
       method: 'POST',
       endpoint: '/api/v1/verify',
       statusCode: 200,
-      outcome: status,
+      outcome: outcome.status,
       orderId,
       latencyMs: latency,
     });
 
+    // Return the authoritative verification response
     return {
       success: true,
       orderId,
       result: {
-        status,
-        canReleaseOrder: status === 'VERIFIED',
+        status: outcome.status,
+        canReleaseOrder: outcome.canReleaseOrder,
         details: {
-          transactionId: reference || 'FT26294KLS90',
-          settledAmount: expectedAmount,
+          transactionId: outcome.transactionId || null,
+          settledAmount: outcome.settledAmount || null,
           currency: 'ETB',
-          provider: 'cbe',
-          verifiedAt: new Date().toISOString(),
-          message,
+          provider: outcome.provider || null,
+          verifiedAt: outcome.createdAt || new Date().toISOString(),
+          message: outcome.reason,
         },
       },
     };
