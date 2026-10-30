@@ -1,4 +1,4 @@
-import { ShieldCheck, FileCheck2, Zap, Code2 } from "lucide-react";
+import { ShieldCheck, FileCheck2, Timer, Code2 } from "lucide-react";
 
 const trustItems = [
   {
@@ -12,7 +12,7 @@ const trustItems = [
     description: "Extract and analyze receipt details.",
   },
   {
-    icon: Zap,
+    icon: Timer,
     title: "Faster workflows",
     description: "Reduce manual payment-checking work.",
   },
@@ -25,23 +25,23 @@ const trustItems = [
 
 export default function TrustStrip() {
   return (
-    <section className="border-y border-[#e8e4d9] bg-white px-6 py-10 md:px-10">
+    <section className="border-y border-border bg-surface px-6 py-10 md:px-10">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {trustItems.map((item) => {
           const Icon = item.icon;
 
           return (
             <div key={item.title} className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#edf4e9] text-[#245b37]">
-                <Icon size={23} strokeWidth={1.8} />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#d6dfd2] bg-white text-[#183b2b]">
+                <Icon size={22} strokeWidth={2} />
               </div>
 
               <div>
-                <h3 className="text-base font-semibold text-[#183b26]">
+                <h3 className="text-base font-semibold text-ink">
                   {item.title}
                 </h3>
 
-                <p className="mt-1 text-sm leading-6 text-[#73786f]">
+                <p className="mt-1 text-sm leading-6 text-ink-muted">
                   {item.description}
                 </p>
               </div>

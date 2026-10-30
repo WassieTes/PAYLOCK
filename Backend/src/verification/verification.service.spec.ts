@@ -1,384 +1,266 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Verification, VerificationStatus } from './entities/verification.entity';
 import { ReceiptProcessorService } from './receipt-processor.service';
+import { VerificationService } from './verification.service';
 
-export interface VerifyInput {
-  merchantId: string;
-  orderId: string;
-  expectedAmount: number;
-  expectedReceiver: string;
-  reference?: string;
-  receiptUrl?: string;
-  fileBuffer?: Buffer;
-  fileName?: string;
-}
+describe('VerificationService', () => {
+  const originalApiKey = process.env.LINKSET_API_KEY;
+  const originalVerifyUrl = process.env.LINKSET_VERIFY_URL;
+  const fetchMock = jest.spyOn(global, 'fetch');
 
-@Injectable()
-export class VerificationService {
-  constructor(
-    @InjectRepository(Verification)
-    private readonly verificationRepo: Repository<Verification>,
-    private readonly receiptProcessor: ReceiptProcessorService,
-  ) {}
+  const repositoryMock = {
+    findOne: jest.fn(),
+    create: jest.fn((record: Partial<Verification>) => ({
+      ...record,
+      id: 'verification-1',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    })),
+    save: jest.fn(async (record: Verification) => record),
+  };
+  const receiptProcessorMock = {
+    processReceiptImage: jest.fn(),
+  };
 
-  async verify(input: VerifyInput) {
-    const { merchantId, orderId, expectedAmount, expectedReceiver } = input;
-    let txnRef = input.reference?.trim() || null;
-    let visualHash: string | null = null;
-    let extractedAmount: number | null = null;
-    let detectedProvider: string | null = null;
+  let service: VerificationService;
 
-    // 1. Ingest image buffer via ReceiptProcessorService if uploaded
-    if (input.fileBuffer && this.receiptProcessor) {
-      const extracted = await this.receiptProcessor.processReceiptImage(input.fileBuffer);
-      if (extracted) {
-        visualHash = extracted.visualHash || null;
-        extractedAmount = extracted.amount != null ? Number(extracted.amount) : null;
-        if (extracted.provider && extracted.provider !== 'unknown') {
-          detectedProvider = extracted.provider;
-        }
-        if (!txnRef && extracted.reference) {
-          txnRef = extracted.reference.trim();
-        }
-      }
+  beforeEach(() => {
+    process.env.LINKSET_API_KEY = 'test-api-key';
+    process.env.LINKSET_VERIFY_URL = 'https://provider.example/api/verify';
+    fetchMock.mockReset();
+    repositoryMock.findOne.mockReset().mockResolvedValue(null);
+    repositoryMock.create.mockClear();
+    repositoryMock.save.mockClear();
+    receiptProcessorMock.processReceiptImage.mockReset().mockResolvedValue({
+      rawText: 'Transfer 100 ETB to account 1000123456789',
+      reference: 'FT1234567890',
+      amount: 100,
+      receiverAccount: '1000123456789',
+      provider: 'cbe',
+      visualHash: 'receipt-hash',
+    });
+
+    service = new VerificationService(
+      repositoryMock as unknown as Repository<Verification>,
+      receiptProcessorMock as unknown as ReceiptProcessorService,
+    );
+  });
+
+  afterAll(() => {
+    fetchMock.mockRestore();
+    if (originalApiKey === undefined) {
+      delete process.env.LINKSET_API_KEY;
+    } else {
+      process.env.LINKSET_API_KEY = originalApiKey;
     }
 
-    // 2. Check for prior verified record in the database
-    if (txnRef) {
-      const existing = await this.verificationRepo.findOne({
-        where: {
-          transactionReference: txnRef,
-          status: VerificationStatus.VERIFIED,
-        },
-      });
-
-      if (existing) {
-        const existingSettledAmount =
-          existing.settledAmount != null ? Number(existing.settledAmount) : null;
-        const isSameOrder =
-          existing.merchantId === merchantId && existing.orderId === orderId;
-
-        if (isSameOrder) {
-          // Verify that order requirements have not changed
-          const amountMatches =
-            existingSettledAmount != null &&
-            Math.abs(existingSettledAmount - Number(expectedAmount)) < 0.01;
-          const receiverMatches =
-            !existing.settledReceiver ||
-            existing.settledReceiver === expectedReceiver ||
-            existing.settledReceiver.includes(expectedReceiver) ||
-            expectedReceiver.includes(existing.settledReceiver);
-
-          if (!amountMatches) {
-            return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-              transactionReference: txnRef,
-              visualHash,
-              extractedAmount,
-              settledAmount: existingSettledAmount,
-              settledReceiver: existing.settledReceiver,
-              providerName: existing.providerName,
-              status: VerificationStatus.MISMATCH,
-              reason: `Settled amount (${existingSettledAmount} ETB) does not match order requirements which requires ${expectedAmount} ETB.`,
-            });
-          }
-
-          if (!receiverMatches) {
-            return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-              transactionReference: txnRef,
-              visualHash,
-              extractedAmount,
-              settledAmount: existingSettledAmount,
-              settledReceiver: existing.settledReceiver,
-              providerName: existing.providerName,
-              status: VerificationStatus.MISMATCH,
-              reason: `Receiver mismatch: Settled receiver was ${existing.settledReceiver}, but expected ${expectedReceiver}.`,
-            });
-          }
-
-          // Idempotent replay of previously confirmed verification
-          return {
-            id: existing.id,
-            orderId: existing.orderId,
-            status: existing.status,
-            canReleaseOrder: true,
-            transactionId: existing.transactionReference,
-            settledAmount: existingSettledAmount,
-            extractedAmount:
-              existing.extractedAmount != null ? Number(existing.extractedAmount) : null,
-            provider: existing.providerName,
-            reason: existing.reason || 'Order already verified.',
-            createdAt: existing.createdAt,
-          };
-        }
-
-        // Fraud detection: Reference reused across different orders
-        return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-          transactionReference: txnRef,
-          visualHash,
-          extractedAmount,
-          settledAmount: existingSettledAmount,
-          providerName: existing.providerName,
-          status: VerificationStatus.DUPLICATE_CLAIM,
-          reason: `This transaction reference (${txnRef}) was already claimed on order ${existing.orderId}.`,
-        });
-      }
+    if (originalVerifyUrl === undefined) {
+      delete process.env.LINKSET_VERIFY_URL;
+    } else {
+      process.env.LINKSET_VERIFY_URL = originalVerifyUrl;
     }
+  });
 
-    // 3. Provider Configuration Check
-    const apiKey = process.env.LINKSET_API_KEY;
-    if (!apiKey) {
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: txnRef || null,
-        visualHash,
-        extractedAmount,
-        providerName: detectedProvider,
-        status: VerificationStatus.PENDING_PROVIDER,
-        settledAmount: null,
-        reason: 'Payment provider is not configured. Check LINKSET_API_KEY setting.',
-      });
-    }
-
-    if (!txnRef && !input.receiptUrl?.trim()) {
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        visualHash,
-        extractedAmount,
-        providerName: detectedProvider,
-        status: VerificationStatus.REVIEW_REQUIRED,
-        reason: 'Could not extract a readable transaction reference or receipt URL.',
-      });
-    }
-
-    // 4. Query Authoritative Ledger (links.et)
-    const requestUrl = new URL(
-      process.env.LINKSET_VERIFY_URL || 'https://links.et/api/verify',
+  it('does not release an order on provider endpoint 404, even when OCR values match', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
     );
 
-    const requestBody = input.receiptUrl?.trim()
-      ? JSON.stringify({ url: input.receiptUrl.trim() })
-      : JSON.stringify({ reference: txnRef });
+    const result = await service.verify({
+      merchantId: 'merchant-1',
+      orderId: 'order-1',
+      expectedAmount: 100,
+      expectedReceiver: '1000123456789',
+      fileBuffer: Buffer.from('receipt'),
+    });
 
-    let response: Response;
-    let data: any = null;
+    expect(result.status).toBe(VerificationStatus.PENDING_PROVIDER);
+    expect(result.canReleaseOrder).toBe(false);
+    expect(result.reason).toContain('LINKSET_VERIFY_URL');
+    expect(repositoryMock.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: VerificationStatus.PENDING_PROVIDER }),
+    );
+  });
 
-    try {
-      response = await fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': apiKey,
-          accept: 'application/json',
-        },
-        body: requestBody,
-      });
-
-      data = await response.json().catch(() => null);
-    } catch (fetchError) {
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: txnRef || null,
-        visualHash,
-        extractedAmount,
-        providerName: detectedProvider,
-        status: VerificationStatus.PENDING_PROVIDER,
-        settledAmount: null,
-        reason: 'Network error connecting to payment provider. Verification pending.',
-      });
-    }
-
-    // 5. Handle HTTP 404 Discrepancy (Missing Provider Endpoint vs. Not Found Transaction)
-    if (response.status === 404) {
-      if (
-        data?.error?.code === 'transaction_not_found' ||
-        data?.code === 'transaction_not_found'
-      ) {
-        return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-          transactionReference: txnRef || null,
-          visualHash,
-          extractedAmount,
-          providerName: detectedProvider,
-          status: VerificationStatus.NOT_FOUND,
-          settledAmount: null,
-          reason: data?.error?.message || 'Transaction reference not found by provider.',
-        });
-      }
-
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: txnRef || null,
-        visualHash,
-        extractedAmount,
-        providerName: detectedProvider,
-        status: VerificationStatus.PENDING_PROVIDER,
-        settledAmount: null,
-        reason:
-          'Payment verification endpoint returned HTTP 404. Check LINKSET_VERIFY_URL; no payment was confirmed.',
-      });
-    }
-
-    // 6. Handle Provider Rejection or Non-OK Status Codes
-    if (!response.ok || data?.ok === false) {
-      let rawError =
-        data?.error?.message ||
-        data?.message ||
-        `Provider returned status ${response.status}`;
-
-      if (input.receiptUrl) {
-        rawError = rawError.split(input.receiptUrl).join('[receipt url]');
-      }
-      rawError = rawError.replace(/https?:\/\/[^\s]+/g, '[receipt url]');
-
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: txnRef || null,
-        visualHash,
-        extractedAmount,
-        providerName: detectedProvider,
-        status: VerificationStatus.PENDING_PROVIDER,
-        settledAmount: null,
-        reason: `Provider error: ${rawError}`,
-      });
-    }
-
-    // 7. Parse Authoritative Receipt Payload
-    const receipt = data?.receipt || {};
-    const providerName =
-      data.providerKey || receipt.provider || detectedProvider || 'cbe';
-    const transactionId =
-      receipt.reference ||
-      receipt.receiptNo ||
-      receipt.transactionId ||
-      txnRef ||
-      null;
-
-    const rawSettled =
-      receipt.settledAmount ?? receipt.transferredAmount ?? receipt.amount;
-    const settledAmount = this.parseMoney(rawSettled);
-
-    const settledReceiver = String(
-      receipt.receiverAccount ??
-        receipt.creditedPartyAccountNo ??
-        receipt.creditedAccount ??
-        receipt.receiver ??
-        '',
-    ).trim();
-
-    // 8. Masked Account Protection
-    if (settledReceiver.includes('*')) {
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: transactionId,
-        visualHash,
-        extractedAmount,
-        settledAmount,
-        settledReceiver,
-        providerName,
-        status: VerificationStatus.REVIEW_REQUIRED,
-        reason:
-          'The provider masked the receiver account; manual review is required.',
-      });
-    }
-
-    // 9. Reconciliation Rules: Amount & Receiver Matching
-    const amountMatches =
-      settledAmount != null &&
-      Math.abs(settledAmount - Number(expectedAmount)) < 0.01;
-
-    const receiverMatches = Boolean(
-      settledReceiver &&
-        (settledReceiver === expectedReceiver ||
-          settledReceiver.includes(expectedReceiver) ||
-          expectedReceiver.includes(settledReceiver)),
+  it('keeps extracted receipt amount separate from settled amount when provider returns 502', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ message: 'Bad Gateway' }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      }),
     );
 
-    if (!amountMatches) {
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: transactionId,
-        visualHash,
-        extractedAmount,
-        settledAmount,
-        settledReceiver,
-        providerName,
-        status: VerificationStatus.MISMATCH,
-        reason: `Amount mismatch: Settled amount is ${settledAmount} ETB, but order requires ${expectedAmount} ETB.`,
-      });
-    }
-
-    if (!receiverMatches) {
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: transactionId,
-        visualHash,
-        extractedAmount,
-        settledAmount,
-        settledReceiver,
-        providerName,
-        status: VerificationStatus.MISMATCH,
-        reason: `Receiver mismatch: Settled receiver was ${settledReceiver}, but expected merchant account ${expectedReceiver}.`,
-      });
-    }
-
-    // 10. Verification Confirmed: Order Approved for Release
-    return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-      transactionReference: transactionId,
-      visualHash,
-      extractedAmount,
-      settledAmount,
-      settledReceiver,
-      providerName,
-      status: VerificationStatus.VERIFIED,
-      reason: 'Transaction confirmed via authoritative banking records.',
-    });
-  }
-
-  private async saveAndReturn(
-    merchantId: string,
-    orderId: string,
-    expectedAmount: number,
-    expectedReceiver: string,
-    result: Partial<Verification>,
-  ) {
-    const record = this.verificationRepo.create({
-      merchantId,
-      orderId,
-      expectedAmount,
-      expectedReceiver,
-      ...result,
+    const result = await service.verify({
+      merchantId: 'merchant-1',
+      orderId: 'order-1',
+      expectedAmount: 100,
+      expectedReceiver: '1000123456789',
+      fileBuffer: Buffer.from('receipt'),
     });
 
-    await this.verificationRepo.save(record);
+    expect(result.status).toBe(VerificationStatus.PENDING_PROVIDER);
+    expect(result.canReleaseOrder).toBe(false);
+    expect(result.extractedAmount).toBe(100);
+    expect(result.settledAmount).toBeNull();
+    expect(result.reason).toContain('HTTP 502 (Bad Gateway)');
+  });
 
-    return {
-      id: record.id,
-      orderId: record.orderId,
-      status: record.status,
-      canReleaseOrder: record.status === VerificationStatus.VERIFIED,
-      transactionId: record.transactionReference || null,
-      settledAmount:
-        record.settledAmount != null ? Number(record.settledAmount) : null,
-      extractedAmount:
-        record.extractedAmount != null ? Number(record.extractedAmount) : null,
-      provider: record.providerName || null,
-      reason: record.reason || null,
-      createdAt: record.createdAt,
-    };
-  }
+  it('looks up CBE FT references with the last 8 digits of the expected receiver account', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          receipt: {
+            reference: 'FT1234567890',
+            transferredAmount: 100,
+            receiverAccount: '1000123456789',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
 
-  private parseMoney(val: unknown): number | null {
-    if (typeof val === 'number') {
-      return isNaN(val) ? null : val;
-    }
-    if (typeof val === 'string') {
-      const match = val.replace(/,/g, '').match(/([0-9]+(?:\.[0-9]+)?)/);
-      if (match) {
-        const num = parseFloat(match[1]);
-        return isNaN(num) ? null : num;
-      }
-    }
-    return null;
-  }
-
-  async getRecentVerifications(merchantId: string) {
-    return this.verificationRepo.find({
-      where: { merchantId },
-      order: { createdAt: 'DESC' },
-      take: 20,
+    await service.verify({
+      merchantId: 'merchant-1',
+      orderId: 'order-1',
+      expectedAmount: 100,
+      expectedReceiver: '1000123456789',
+      reference: 'FT1234567890',
     });
-  }
-}
+
+    const requestOptions = fetchMock.mock.calls[0]?.[1];
+    expect(requestOptions?.body).toBe(
+      JSON.stringify({
+        url: 'https://apps.cbe.com.et:100/?id=FT123456789023456789',
+      }),
+    );
+  });
+
+  it('does not send an incomplete CBE FT lookup when the account has fewer than 8 digits', async () => {
+    const result = await service.verify({
+      merchantId: 'merchant-1',
+      orderId: 'order-1',
+      expectedAmount: 100,
+      expectedReceiver: '1234567',
+      reference: 'FT1234567890',
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.status).toBe(VerificationStatus.PENDING_PROVIDER);
+    expect(result.canReleaseOrder).toBe(false);
+    expect(result.reason).toContain('at least 8 digits');
+  });
+
+  it('allows release when the provider confirms a completed transfer matching the order', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          receipt: {
+            status: 'successful',
+            reference: 'FT1234567890',
+            transferredAmount: 100,
+            receiverAccount: '1000123456789',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+
+    const result = await service.verify({
+      merchantId: 'merchant-1',
+      orderId: 'order-1',
+      expectedAmount: 100,
+      expectedReceiver: '1000123456789',
+      reference: 'FT1234567890',
+    });
+
+    expect(result.status).toBe(VerificationStatus.VERIFIED);
+    expect(result.canReleaseOrder).toBe(true);
+    expect(result.settledAmount).toBe(100);
+  });
+
+  it('allows release when all visible digits of a masked receiver match the order and OCR account', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          receipt: {
+            status: 'successful',
+            reference: 'FT1234567890',
+            transferredAmount: 100,
+            receiverAccount: '1****0337',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+
+    receiptProcessorMock.processReceiptImage.mockResolvedValueOnce({
+      rawText: 'Transfer 100 ETB to account 100012340337',
+      reference: 'FT1234567890',
+      amount: 100,
+      receiverAccount: '100012340337',
+      provider: 'cbe',
+      visualHash: 'receipt-hash',
+    });
+
+    const result = await service.verify({
+      merchantId: 'merchant-1',
+      orderId: 'order-1',
+      expectedAmount: 100,
+      expectedReceiver: '100012340337',
+      fileBuffer: Buffer.from('receipt'),
+    });
+
+    expect(result.status).toBe(VerificationStatus.VERIFIED);
+    expect(result.canReleaseOrder).toBe(true);
+    expect(result.reason).toContain('visible digits');
+    expect(result.reason).toContain('account extracted from the receipt');
+    expect(repositoryMock.save).toHaveBeenCalledWith(
+      expect.objectContaining({ settledReceiver: '1****0337' }),
+    );
+  });
+
+  it('does not release when a visible digit in the masked receiver does not match', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          receipt: {
+            status: 'successful',
+            reference: 'FT1234567890',
+            transferredAmount: 100,
+            receiverAccount: '1****0000',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+
+    const result = await service.verify({
+      merchantId: 'merchant-1',
+      orderId: 'order-1',
+      expectedAmount: 100,
+      expectedReceiver: '1000123456789',
+      reference: 'FT1234567890',
+    });
+
+    expect(result.status).toBe(VerificationStatus.MISMATCH);
+    expect(result.canReleaseOrder).toBe(false);
+  });
+});

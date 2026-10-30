@@ -60,6 +60,7 @@ export class VerificationService {
     let txnRef = input.reference?.trim() || null;
     let visualHash: string | null = null;
     let extractedAmount: number | null = null;
+    let extractedReceiverAccount: string | null = null;
     let detectedProvider: string | null = null;
 
     // 1. Process Receipt Image if an upload buffer is present
@@ -67,6 +68,7 @@ export class VerificationService {
       const extracted = await this.receiptProcessor.processReceiptImage(input.fileBuffer);
       visualHash = extracted.visualHash;
       extractedAmount = extracted.amount;
+      extractedReceiverAccount = extracted.receiverAccount;
       detectedProvider = extracted.provider !== 'unknown' ? extracted.provider : null;
 
       // Visual Deduplication: Detect recycled screenshot images
@@ -123,7 +125,11 @@ export class VerificationService {
     }
 
     // 4. Query the authoritative payment ledger.
-    const upstream = await this.queryUpstreamProvider(txnRef, input.receiptUrl);
+    const upstream = await this.queryUpstreamProvider(
+      txnRef,
+      input.receiptUrl,
+      expectedReceiver,
+    );
 
     if (upstream.status === 'unavailable') {
       return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
@@ -176,9 +182,9 @@ export class VerificationService {
     const provider = upstream.provider || detectedProvider || 'unknown';
     const amountMatches = Math.abs(Number(upstream.amount) - Number(expectedAmount)) < 0.01;
     const receiverMatches =
-      this.normalizeReceiver(upstream.receiver) ===
-        this.normalizeReceiver(expectedReceiver) &&
-      this.normalizeReceiver(expectedReceiver).length > 0;
+      this.receiverMatches(upstream.receiver, expectedReceiver) &&
+      (!extractedReceiverAccount ||
+        this.receiverMatches(upstream.receiver, extractedReceiverAccount));
 
     if (!amountMatches) {
       return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
@@ -190,19 +196,6 @@ export class VerificationService {
         providerName: provider,
         status: VerificationStatus.MISMATCH,
         reason: `Amount mismatch: Settled bank transfer is ${upstream.amount} ETB, but order requires ${expectedAmount} ETB.`,
-      });
-    }
-
-    if (/[*xX•]{2,}/.test(upstream.receiver)) {
-      return this.saveAndReturn(merchantId, orderId, expectedAmount, expectedReceiver, {
-        transactionReference: verifiedReference,
-        visualHash,
-        extractedAmount,
-        settledAmount: upstream.amount,
-        settledReceiver: upstream.receiver,
-        providerName: provider,
-        status: VerificationStatus.REVIEW_REQUIRED,
-        reason: `The provider confirmed the payment amount but masked the receiver account (${upstream.receiver}), so PAYLOCK cannot safely confirm it matches the merchant account.`,
       });
     }
 
@@ -228,7 +221,9 @@ export class VerificationService {
       settledReceiver: upstream.receiver,
       providerName: provider,
       status: VerificationStatus.VERIFIED,
-      reason: 'Transaction verified against authoritative banking ledger.',
+      reason: /[*xX•●·]/.test(upstream.receiver)
+        ? `Transaction verified against the authoritative banking ledger. The visible digits in masked receiver account ${upstream.receiver} matched the merchant account${extractedReceiverAccount ? ' and the account extracted from the receipt' : ''}.`
+        : 'Transaction verified against authoritative banking ledger.',
     });
   }
 
@@ -257,9 +252,7 @@ export class VerificationService {
         Number.isFinite(existingAmount) &&
         Math.abs(existingAmount - expectedAmount) < 0.01;
       const receiverMatches =
-        this.normalizeReceiver(existingRef.settledReceiver || '') ===
-          this.normalizeReceiver(expectedReceiver) &&
-        this.normalizeReceiver(expectedReceiver).length > 0;
+        this.receiverMatches(existingRef.settledReceiver || '', expectedReceiver);
 
       if (amountMatches && receiverMatches) {
         return {
@@ -337,9 +330,33 @@ export class VerificationService {
     return value.replace(/\D/g, '');
   }
 
+  private receiverMatches(settledReceiver: string, expectedReceiver: string) {
+    const expectedDigits = this.normalizeReceiver(expectedReceiver);
+    if (!expectedDigits) return false;
+
+    if (/[*xX•●·]/.test(settledReceiver)) {
+      const masked = settledReceiver
+        .replace(/[\s().-]/g, '')
+        .match(/^(\d*)[*xX•●·]+(\d*)$/);
+      if (!masked) return false;
+
+      const [, visiblePrefix, visibleSuffix] = masked;
+      const visibleLength = visiblePrefix.length + visibleSuffix.length;
+      return (
+        visibleLength > 0 &&
+        expectedDigits.length > visibleLength &&
+        expectedDigits.startsWith(visiblePrefix) &&
+        expectedDigits.endsWith(visibleSuffix)
+      );
+    }
+
+    return this.normalizeReceiver(settledReceiver) === expectedDigits;
+  }
+
   private async queryUpstreamProvider(
     reference: string | null,
     receiptUrl?: string,
+    expectedReceiver?: string,
   ): Promise<ProviderLookupResult> {
     const apiKey = process.env.LINKSET_API_KEY;
     const verifyUrl =
@@ -351,6 +368,25 @@ export class VerificationService {
         status: 'unavailable',
         reason: 'Payment provider is not configured. No ledger verification was performed.',
       };
+    }
+
+    let lookupUrl = receiptUrl;
+    if (!lookupUrl && reference && /^FT[A-Z0-9]+$/i.test(reference)) {
+      const accountDigits = expectedReceiver?.replace(/\D/g, '') || '';
+      if (accountDigits.length < 8) {
+        return {
+          status: 'unavailable',
+          reason:
+            'CBE FT references require a receipt URL or at least 8 digits from an account on the transfer. No payment was confirmed.',
+        };
+      }
+
+      const cbeUrl = new URL('https://apps.cbe.com.et:100/');
+      const accountSuffix = accountDigits.slice(-8);
+      const cbeReference =
+        reference.endsWith(accountSuffix) ? reference : `${reference}${accountSuffix}`;
+      cbeUrl.searchParams.set('id', cbeReference);
+      lookupUrl = cbeUrl.toString();
     }
 
     if (apiKey) {
@@ -370,7 +406,7 @@ export class VerificationService {
             'x-api-key': apiKey,
           },
           body: JSON.stringify(
-            receiptUrl ? { url: receiptUrl } : { reference },
+            lookupUrl ? { url: lookupUrl } : { reference },
           ),
           signal: AbortSignal.timeout(125_000),
         });
@@ -392,19 +428,22 @@ export class VerificationService {
         if (res.status === 404) {
           return {
             status: 'unavailable',
-            reason: 'links.et returned HTTP 404. Check LINKSET_VERIFY_URL; no payment was confirmed.',
+            reason:
+              'The configured links.et verification endpoint returned HTTP 404. Check that LINKSET_VERIFY_URL is the provider’s correct POST endpoint. This is not a transaction-not-found result; no payment was confirmed.',
           };
         }
         if (!res.ok) {
           const reason =
             res.status === 401
               ? 'links.et rejected the API key. Check LINKSET_API_KEY; no payment was confirmed.'
+              : res.status === 502
+                ? 'links.et returned HTTP 502 (Bad Gateway). Its gateway or an upstream payment service failed to provide a verification result. Retry later or contact the provider; no settled amount or receiver was confirmed.'
               : res.status === 429
                 ? 'links.et rate or plan limit reached. Check the Retry-After response before retrying; no payment was confirmed.'
-                : !receiptUrl &&
+                : !lookupUrl &&
                     reference?.toUpperCase().startsWith('FT') &&
                     errorCode === 'invalid_request'
-                  ? 'links.et requires a full receipt URL to verify CBE FT references. Enter the receipt link; no payment was confirmed.'
+                  ? 'CBE FT references require a receipt URL or the last 8 digits of an account on the transfer. No payment was confirmed.'
                   : `links.et could not verify this receipt (HTTP ${res.status}${safeErrorCode ? `, ${safeErrorCode}` : ''}). No payment was confirmed.`;
           return {
             status: 'unavailable',

@@ -54,9 +54,11 @@ export default function DashboardSidebar({
             aria-label="PAYLOCK home"
             className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#174D38]"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#174D38] text-white">
-              <ShieldCheck size={23} />
-            </div>
+            <img
+              src="/paylock_logo.jpg"
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-xl object-cover"
+            />
 
             <span>
               <span className="block text-xl font-bold tracking-tight text-[#174D38]">

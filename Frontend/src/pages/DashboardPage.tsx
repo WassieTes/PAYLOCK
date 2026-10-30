@@ -140,19 +140,27 @@ export default function DashboardPage() {
   }, [signOut]);
 
   useEffect(() => {
+    // Load records and profile after the dashboard mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadVerifications();
     void loadProfile();
   }, [loadVerifications, loadProfile]);
 
   const reviewCount = verifications.filter((item) =>
-    ["needs_review", "review", "flagged", "suspicious"].includes(
-      item.status.toLowerCase(),
-    ),
+    [
+      "needs_review",
+      "review",
+      "flagged",
+      "suspicious",
+      "review_required",
+      "mismatch",
+      "duplicate_claim",
+      "not_found",
+      "pending_provider",
+    ].includes(item.status.toLowerCase()),
   ).length;
 
-  const businessName = profileLoading
-    ? "merchant"
-    : merchant?.businessName || "merchant";
+  const businessName = profileLoading ? undefined : merchant?.businessName;
 
   return (
     <div className="min-h-screen bg-[#F7F8F5] text-[#20372D]">
@@ -179,18 +187,6 @@ export default function DashboardPage() {
           />
 
           <PaymentSecurityNotice />
-
-          {error && (
-            <div
-              role="alert"
-              className="mb-7 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-            >
-              <p className="font-semibold">
-                Could not load verification records
-              </p>
-              <p className="mt-1">{error}</p>
-            </div>
-          )}
 
           <DashboardMetrics verifications={verifications} loading={loading} />
 

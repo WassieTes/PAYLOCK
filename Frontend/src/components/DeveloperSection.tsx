@@ -77,22 +77,22 @@ export default function DeveloperSection() {
   return (
     <section
       id="developer"
-      className="overflow-hidden bg-[#f8f7f2] px-6 py-24 md:px-10 md:py-28"
+      className="paylock-mesh overflow-hidden px-6 py-20 md:px-10 md:py-24"
     >
       <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2 lg:gap-20">
         {/* Left content */}
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#dce7d7] bg-white px-4 py-2 text-sm font-medium text-[#356744]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-brand">
             <Code2 size={16} />
             For developers
           </span>
 
-          <h2 className="mt-6 text-3xl font-semibold leading-tight tracking-tight text-[#183b26] sm:text-4xl lg:text-5xl">
+          <h2 className="mt-6 text-3xl font-semibold leading-tight tracking-tight text-ink sm:text-4xl lg:text-5xl">
             Payment verification that fits
-            <span className="text-[#638b54]"> your workflow.</span>
+            <span className="text-[#557A49]"> your workflow.</span>
           </h2>
 
-          <p className="mt-5 max-w-xl text-base leading-7 text-[#73786f] sm:text-lg">
+          <p className="mt-5 max-w-xl text-base leading-7 text-ink-muted sm:text-lg">
             Connect your ecommerce backend to PAYLOCK. Create verification
             requests, track their status, and decide when your order workflow
             can continue.
@@ -123,16 +123,16 @@ export default function DeveloperSection() {
 
               return (
                 <div key={item.title} className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e7efe1] text-[#356744]">
-                    <Icon size={21} strokeWidth={1.8} />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                    <Icon size={20} strokeWidth={2} />
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-[#183b26]">
+                    <h3 className="font-semibold text-ink">
                       {item.title}
                     </h3>
 
-                    <p className="mt-1 text-sm leading-6 text-[#73786f]">
+                    <p className="mt-1 text-sm leading-6 text-ink-muted">
                       {item.description}
                     </p>
                   </div>
@@ -160,7 +160,10 @@ export default function DeveloperSection() {
         </div>
 
         {/* Right code example */}
-        <div className="overflow-hidden rounded-3xl border border-[#293e32] bg-[#10271c] shadow-2xl shadow-[#183b26]/10">
+        <div
+          id="api-reference"
+          className="scroll-mt-24 overflow-hidden rounded-3xl border border-[#293e32] bg-[#10271c]"
+        >
           <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#284b35] text-[#c4e0b5]">

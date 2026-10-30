@@ -1,4 +1,4 @@
-import { Check, ArrowRight, Sparkles } from "lucide-react";
+import { Check, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const plans = [
@@ -51,20 +51,19 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="bg-white px-6 py-24 md:px-10 md:py-28">
+    <section id="pricing" className="bg-surface px-6 py-20 md:px-10 md:py-24">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#dce7d7] bg-[#f5f8f1] px-4 py-2 text-sm font-medium text-[#356744]">
-            <Sparkles size={15} />
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-muted px-4 py-2 text-sm font-medium text-brand">
             Simple plans
           </span>
 
-          <h2 className="mt-6 text-3xl font-semibold tracking-tight text-[#183b26] sm:text-4xl lg:text-5xl">
+          <h2 className="mt-6 text-3xl font-semibold tracking-tight text-ink sm:text-4xl lg:text-5xl">
             Start small. Grow with
-            <span className="text-[#638b54]"> confidence.</span>
+            <span className="text-[#557A49]"> confidence.</span>
           </h2>
 
-          <p className="mt-5 text-base leading-7 text-[#73786f] sm:text-lg">
+          <p className="mt-5 text-base leading-7 text-ink-muted sm:text-lg">
             Start with the essentials, then choose the verification capacity and
             integrations your business needs.
           </p>
@@ -76,8 +75,8 @@ export default function Pricing() {
               key={plan.name}
               className={`relative flex flex-col rounded-3xl border p-7 sm:p-8 ${
                 plan.featured
-                  ? "border-[#245b37] bg-[#183b26] text-white shadow-xl shadow-[#183b26]/10 lg:-translate-y-2"
-                  : "border-[#e8e6dc] bg-[#fcfcf9] text-[#183b26]"
+                  ? "border-[#245b37] bg-[#183B2B] text-white"
+                  : "border-border bg-canvas text-ink"
               }`}
             >
               {plan.featured && (
@@ -89,8 +88,8 @@ export default function Pricing() {
               <h3 className="text-xl font-semibold">{plan.name}</h3>
 
               <p
-                className={`mt-3 min-h-[72px] text-sm leading-6 ${
-                  plan.featured ? "text-[#d0ddce]" : "text-[#73786f]"
+                className={`mt-3 text-sm leading-6 ${
+                  plan.featured ? "text-[#D5E0D4]" : "text-ink-muted"
                 }`}
               >
                 {plan.description}
@@ -102,7 +101,7 @@ export default function Pricing() {
                 </p>
                 <p
                   className={`mt-2 text-sm ${
-                    plan.featured ? "text-[#d0ddce]" : "text-[#73786f]"
+                    plan.featured ? "text-[#D5E0D4]" : "text-ink-muted"
                   }`}
                 >
                   {plan.period}
@@ -121,12 +120,12 @@ export default function Pricing() {
                     <Check
                       size={18}
                       className={`mt-0.5 shrink-0 ${
-                        plan.featured ? "text-[#c4e0b5]" : "text-[#638b54]"
+                        plan.featured ? "text-[#c4e0b5]" : "text-[#557A49]"
                       }`}
                     />
                     <span
                       className={`text-sm leading-6 ${
-                        plan.featured ? "text-[#f1f5ee]" : "text-[#555f54]"
+                        plan.featured ? "text-[#F3F5EF]" : "text-[#46544A]"
                       }`}
                     >
                       {feature}
@@ -150,7 +149,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        <p className="mt-8 text-center text-xs leading-5 text-[#85877e]">
+        <p className="mt-8 text-center text-xs leading-5 text-ink-muted">
           Proposed plans for the MVP. Pricing, usage limits, and paid features
           will be confirmed before launch. Payment-provider fees, if any, may be
           separate.

@@ -94,8 +94,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f5ee] px-4 py-8 text-[#173f30] sm:px-6 lg:flex lg:items-center lg:justify-center">
-      <div className="mx-auto grid min-h-[700px] w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-[0_20px_70px_-30px_rgba(23,63,48,0.22)] lg:grid-cols-2">
+    <main className="min-h-screen bg-[#f4f5ee] px-4 py-5 text-[#173f30] sm:px-6 sm:py-8 lg:flex lg:items-center lg:justify-center">
+      <div className="mx-auto grid min-h-[680px] w-full max-w-6xl overflow-hidden rounded-[2rem] border border-[#e7ebe2] bg-white shadow-lg lg:grid-cols-[0.95fr_1.05fr]">
         {/* Left branding panel — same structure as registration */}
         <section className="relative hidden flex-col justify-between overflow-hidden bg-[#143b2d] p-10 text-white lg:flex xl:p-14">
           <div
@@ -112,16 +112,18 @@ export default function LoginPage() {
           />
 
           <Link to="/" className="relative z-10 flex w-fit items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#c1d8b7] text-[#143b2d]">
-              <ShieldCheck size={25} strokeWidth={2.2} />
-            </span>
+            <img
+              src="/paylock_logo.jpg"
+              alt=""
+              className="h-11 w-11 rounded-2xl object-cover"
+            />
             <span className="text-2xl font-bold tracking-tight">PAYLOCK</span>
           </Link>
 
-          <div className="relative z-10 max-w-xl py-16">
-            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-[#d8e8d1]">
+          <div className="relative z-10 max-w-xl py-12">
+            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.07] px-4 py-2 text-xs font-semibold tracking-wide text-[#d8e8d1]">
               <Fingerprint size={16} />
-              Secure merchant access
+              PAYMENT VERIFICATION WORKSPACE
             </span>
 
             <h1 className="text-4xl font-semibold leading-tight tracking-tight xl:text-5xl">
@@ -136,7 +138,7 @@ export default function LoginPage() {
               merchant account, and connect PAYLOCK to your store.
             </p>
 
-            <div className="mt-10 flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+            <div className="mt-10 flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#c1d8b7]/15 text-[#c1d8b7]">
                 <LockKeyhole size={21} />
               </span>
@@ -158,44 +160,43 @@ export default function LoginPage() {
         </section>
 
         {/* Right form panel — same structure and spacing as registration */}
-        <section className="flex min-h-screen flex-col">
-          <header className="flex items-center justify-between px-5 py-5 sm:px-10 lg:justify-end lg:px-12">
+        <section className="flex min-h-[680px] flex-col bg-white">
+          <header className="flex min-h-[76px] items-center justify-between gap-3 border-b border-[#edf0eb] px-4 py-4 sm:px-8 lg:px-10">
             <Link
               to="/"
-              className="flex items-center gap-2 text-sm font-medium text-[#173f30] lg:hidden"
-            >
-              <ShieldCheck size={23} />
-              <span className="text-lg font-bold">PAYLOCK</span>
-            </Link>
-
-            <Link
-              to="/"
-              className="hidden items-center gap-2 text-sm text-[#557064] transition hover:text-[#173f30] lg:inline-flex"
+              aria-label="Back to home"
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#dce4d9] bg-white px-3 text-xs font-semibold text-[#557064] transition hover:border-[#b9cbb5] hover:bg-[#f7f9f5] hover:text-[#173f30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#557f60] sm:px-4 sm:text-sm"
             >
               <ArrowLeft size={16} />
-              Back to home
+              <span className="hidden min-[360px]:inline">Back to home</span>
+              <span className="min-[360px]:hidden">Home</span>
             </Link>
 
             <Link
               to="/register"
-              className="text-sm font-semibold text-[#285840] transition hover:text-[#173f30]"
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#245b37] px-2.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#173f30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#557f60] min-[360px]:gap-2 min-[360px]:px-3 sm:px-4 sm:text-sm"
             >
               Create account
+              <ArrowRight size={15} />
             </Link>
           </header>
 
-          <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-10">
+          <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-10 lg:px-12">
             <div className="w-full max-w-md">
               <div className="mb-8">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e0ead9] text-[#285840]">
-                  <LockKeyhole size={23} />
+                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#e4ebdf] bg-[#f5f8f1] p-1.5 shadow-sm">
+                  <img
+                    src="/paylock_logo.jpg"
+                    alt="PAYLOCK"
+                    className="h-full w-full rounded-xl object-cover"
+                  />
                 </div>
 
-                <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#66816d]">
-                  Merchant portal
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#66816d]">
+                  MERCHANT PORTAL
                 </p>
 
-                <h2 className="text-3xl font-semibold tracking-tight text-[#173f30] sm:text-4xl">
+                <h2 className="text-3xl font-semibold tracking-tight text-[#173f30] sm:text-[2.6rem]">
                   Welcome back
                 </h2>
 
@@ -242,13 +243,12 @@ export default function LoginPage() {
                       name="email"
                       type="email"
                       autoComplete="email"
-                      autoFocus
                       required
                       maxLength={254}
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder="you@yourbusiness.com"
-                      className="w-full rounded-xl border border-[#dce4d9] bg-white py-3.5 pl-11 pr-4 text-sm text-[#173f30] outline-none transition placeholder:text-[#a0ada2] focus:border-[#557f60] focus:ring-4 focus:ring-[#557f60]/10"
+                      className="w-full rounded-xl border border-[#dce4d9] bg-[#fcfdfb] py-3.5 pl-11 pr-4 text-sm text-[#173f30] outline-none transition placeholder:text-[#a0ada2] hover:border-[#b9cbb5] focus:border-[#557f60] focus:bg-white focus:ring-4 focus:ring-[#557f60]/10"
                     />
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder="Enter your password"
-                      className="w-full rounded-xl border border-[#dce4d9] bg-white py-3.5 pl-11 pr-12 text-sm text-[#173f30] outline-none transition placeholder:text-[#a0ada2] focus:border-[#557f60] focus:ring-4 focus:ring-[#557f60]/10"
+                      className="w-full rounded-xl border border-[#dce4d9] bg-[#fcfdfb] py-3.5 pl-11 pr-12 text-sm text-[#173f30] outline-none transition placeholder:text-[#a0ada2] hover:border-[#b9cbb5] focus:border-[#557f60] focus:bg-white focus:ring-4 focus:ring-[#557f60]/10"
                     />
                     <button
                       type="button"
@@ -296,7 +296,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#173f30] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#24553e] focus:outline-none focus:ring-4 focus:ring-[#557f60]/20 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#245b37] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#173f30] focus:outline-none focus:ring-4 focus:ring-[#557f60]/20 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? (
                     <>

@@ -67,35 +67,40 @@ function issueType(record: VerificationRecord) {
     case "MISMATCH":
       return {
         label: "Mismatch",
-        description: "The settled payment details do not match the order.",
+        description: "The confirmed payment details differ from the order.",
+        nextStep: "Compare the confirmed details with the order before taking action.",
         Icon: XCircle,
         color: "bg-rose-50 text-rose-700 border-rose-200",
       };
     case "DUPLICATE_CLAIM":
       return {
         label: "Duplicate claim",
-        description: "This receipt image or transaction reference was already claimed.",
+        description: "This receipt or transaction reference was used on another claim.",
+        nextStep: "Check the original verification in your history.",
         Icon: ShieldAlert,
         color: "bg-amber-50 text-amber-800 border-amber-200",
       };
     case "NOT_FOUND":
       return {
         label: "Not found",
-        description: "The payment provider did not find this transaction reference.",
+        description: "The provider couldn't find a transaction for these details.",
+        nextStep: "Check the reference or receipt link, then verify again.",
         Icon: FileSearch,
         color: "bg-orange-50 text-orange-800 border-orange-200",
       };
     case "PENDING_PROVIDER":
       return {
-        label: "Provider pending",
-        description: "A definitive result is not available from the payment provider yet.",
+        label: "Waiting for provider",
+        description: "The payment provider hasn't returned a confirmation yet.",
+        nextStep: "No settlement was confirmed. Try again later when the provider is available.",
         Icon: Clock3,
         color: "bg-sky-50 text-sky-800 border-sky-200",
       };
     default:
       return {
         label: "Review required",
-        description: "The receipt could not be fully verified.",
+        description: "PAYLOCK couldn't fully confirm this payment.",
+        nextStep: "Review the verification details before fulfilling the order.",
         Icon: AlertCircle,
         color: "bg-orange-50 text-orange-800 border-orange-200",
       };
@@ -182,6 +187,8 @@ export default function ReviewPage() {
         record.providerName,
         record.reason,
         record.status,
+        record.expectedReceiver,
+        record.settledReceiver,
       ].some((value) => String(value ?? "").toLowerCase().includes(query)),
     );
   }, [reviewRecords, search]);
@@ -191,27 +198,26 @@ export default function ReviewPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-6">
-      <header className="overflow-hidden rounded-3xl border border-[#F1D9BC] bg-gradient-to-br from-[#FFF8ED] via-white to-[#F8F3E9] p-6 shadow-sm sm:p-8">
+      <header className="overflow-hidden rounded-3xl border border-[#DDE9DF] bg-gradient-to-br from-[#F3F8F3] via-white to-[#EDF4EE] p-6 shadow-sm sm:p-8">
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#F8EDDA] px-3 py-1.5 text-xs font-semibold tracking-wide text-[#865418]">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold tracking-wide text-[#865418] shadow-sm ring-1 ring-[#F1E8D9]">
               <ShieldAlert size={15} />
-              PAYMENT EXCEPTIONS
+              PAYMENT REVIEW
             </span>
-            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-[#3D3528] sm:text-3xl">
+            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-[#20372D] sm:text-3xl">
               Needs review
             </h1>
-            <p className="mt-2 text-sm leading-6 text-[#756B5A] sm:text-base">
-              Review payment checks that could not be safely confirmed. These
-              records are read-only; verify the payment with your provider before
-              deciding whether to fulfill an order.
+            <p className="mt-2 text-sm leading-6 text-[#718077] sm:text-base">
+              A few payment checks need another look. See what PAYLOCK confirmed
+              and what still needs checking before you fulfill an order.
             </p>
           </div>
           <Link
             to="/dashboard/history"
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-[#E8DCC9] bg-white px-4 py-2.5 text-sm font-semibold text-[#57462F] transition hover:bg-[#FFFCF6]"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-[#DCE5DC] bg-white px-4 py-2.5 text-sm font-semibold text-[#174D38] transition hover:bg-[#F6F8F5]"
           >
-            View all history <ArrowRight size={16} />
+            View verification history <ArrowRight size={16} />
           </Link>
         </div>
       </header>
@@ -219,19 +225,19 @@ export default function ReviewPage() {
       <section className="grid gap-3 sm:grid-cols-3" aria-label="Review summary">
         {[
           {
-            label: "Cases requiring attention",
+            label: "Needs your attention",
             value: loading ? "—" : reviewRecords.length,
             Icon: ShieldAlert,
             color: "bg-amber-50 text-amber-800",
           },
           {
-            label: "Awaiting provider",
+            label: "Waiting for provider",
             value: loading ? "—" : providerPendingCount,
             Icon: Clock3,
             color: "bg-sky-50 text-sky-800",
           },
           {
-            label: "Verified records",
+            label: "Recently verified",
             value: loading ? "—" : records.filter((record) => record.status === "VERIFIED").length,
             Icon: CheckCircle2,
             color: "bg-[#EAF2EC] text-[#174D38]",
@@ -255,8 +261,8 @@ export default function ReviewPage() {
             <h2 className="font-semibold text-[#20372D]">Recent cases</h2>
             <p className="mt-1 text-sm text-[#829087]">
               {loading
-                ? "Loading recent verification records…"
-                : `${visibleRecords.length} cases from your latest verification records`}
+                ? "Loading your latest verification results…"
+                : `${visibleRecords.length} ${visibleRecords.length === 1 ? "case" : "cases"}${search.trim() ? " match your search" : " need attention"}`}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -267,7 +273,7 @@ export default function ReviewPage() {
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search order or reference"
+                placeholder="Search order, account or reference"
                 className="w-full rounded-xl border border-[#E2E7DF] py-2.5 pl-10 pr-3 text-sm outline-none transition placeholder:text-[#A0AAA2] focus:border-[#6C967A] focus:ring-4 focus:ring-[#174D38]/10"
               />
             </label>
@@ -311,7 +317,7 @@ export default function ReviewPage() {
         ) : loading ? (
           <div className="flex min-h-60 flex-col items-center justify-center p-8 text-center">
             <LoaderCircle size={26} className="animate-spin text-[#174D38]" />
-            <p className="mt-3 text-sm font-medium text-[#526057]">Loading review cases</p>
+            <p className="mt-3 text-sm font-medium text-[#526057]">Loading your review cases…</p>
           </div>
         ) : reviewRecords.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
@@ -345,7 +351,7 @@ export default function ReviewPage() {
         ) : (
           <ul className="divide-y divide-[#EDF0EB]">
             {visibleRecords.map((record) => {
-              const { label, description, Icon, color } = issueType(record);
+              const { label, description, nextStep, Icon, color } = issueType(record);
               return (
                 <li key={record.id} className="p-5 sm:p-6">
                   <article className="space-y-5">
@@ -366,42 +372,57 @@ export default function ReviewPage() {
                           </p>
                         </div>
                       </div>
-                      <time className="shrink-0 text-xs text-[#829087]">{dateLabel(record.createdAt)}</time>
+                      <time className="shrink-0 text-xs text-[#829087]">
+                        Checked {dateLabel(record.createdAt)}
+                      </time>
                     </div>
 
-                    <div className="grid gap-3 rounded-2xl bg-[#FAFBF9] p-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 rounded-2xl bg-[#F7F9F6] p-4 sm:grid-cols-2 xl:grid-cols-5">
                       <div>
                         <p className="text-xs text-[#829087]">Transaction reference</p>
                         <p className="mt-1 break-all font-mono text-sm font-medium text-[#34483A]">
-                          {record.transactionReference || "Not detected"}
+                          {record.transactionReference || "Not provided"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#829087]">Expected / settled</p>
-                        <p className="mt-1 text-sm font-medium text-[#34483A]">
+                        <p className="text-xs text-[#829087]">Order amount</p>
+                        <p className="mt-1 text-sm font-semibold text-[#34483A]">
                           {amount(record.expectedAmount)}
-                          <span className="mx-1.5 text-[#A0AAA2]">/</span>
-                          {amount(record.settledAmount)}
+                        </p>
+                        <p className="mt-1 text-xs text-[#829087]">
+                          Provider confirmed: {amount(record.settledAmount)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#829087]">Expected receiver</p>
+                        <p className="text-xs text-[#829087]">Merchant account</p>
                         <p className="mt-1 break-all font-mono text-sm font-medium text-[#34483A]">
-                          {record.expectedReceiver || "—"}
+                          {record.expectedReceiver || "Not provided"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#829087]">Provider</p>
-                        <p className="mt-1 text-sm font-medium text-[#34483A]">
+                        <p className="text-xs text-[#829087]">Receiver on provider record</p>
+                        <p className="mt-1 break-all font-mono text-sm font-medium text-[#34483A]">
+                          {record.settledReceiver || "Not confirmed"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[#829087]">Payment provider</p>
+                        <p className="mt-1 text-sm font-medium capitalize text-[#34483A]">
                           {record.providerName || "Not identified"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-3 rounded-xl border border-[#F1E8D9] bg-[#FFFCF6] p-3.5 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-start gap-2.5 text-sm text-[#725B38]">
+                    <div className="flex flex-col gap-3 rounded-xl border border-[#E9E5D9] bg-[#FCFBF7] p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-2.5 text-sm text-[#65583F]">
                         <AlertCircle size={17} className="mt-0.5 shrink-0" />
-                        <p className="leading-5">{description} Do not release based on a receipt image alone.</p>
+                        <p className="leading-5">
+                          <span className="font-semibold">{description}</span>{" "}
+                          {record.reason && record.reason !== description
+                            ? `${record.reason} `
+                            : ""}
+                          {nextStep}
+                        </p>
                       </div>
                       <Link
                         to="/dashboard/history"

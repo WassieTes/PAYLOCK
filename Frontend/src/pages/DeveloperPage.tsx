@@ -529,7 +529,7 @@ if (data.result.canReleaseOrder) {
       {/* CREATE API KEY MODAL */}
       {showKeyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-[#EEF0EB] space-y-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg border border-[#EEF0EB] space-y-4">
             <h3 className="text-lg font-bold text-[#174D38]">
               {newlyCreatedKey ? 'Secret Key Generated[cite: 2]' : 'Create Merchant API Key[cite: 2]'}
             </h3>

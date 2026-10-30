@@ -456,7 +456,7 @@ export default function HistoryPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="record-dialog-title"
-            className="my-auto w-full max-w-xl rounded-3xl border border-[#E5E9E2] bg-white p-5 shadow-2xl sm:p-7"
+            className="my-auto w-full max-w-xl rounded-3xl border border-[#E5E9E2] bg-white p-5 shadow-lg sm:p-7"
           >
             <div className="flex items-start justify-between gap-4 border-b border-[#EDF0EB] pb-5">
               <div>

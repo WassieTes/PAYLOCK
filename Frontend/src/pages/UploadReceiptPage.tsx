@@ -202,7 +202,7 @@ export default function UploadReceiptPage() {
                 Verify a receipt
               </h1>
               <p className="mt-2 text-sm leading-6 text-white/75 sm:text-base">
-                Match the customer&apos;s payment evidence with your order and confirm the transfer before releasing goods or services[cite: 1].
+                Match the customer&apos;s payment evidence with your order and confirm the transfer before releasing goods or services.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-4">
@@ -327,7 +327,7 @@ export default function UploadReceiptPage() {
                   placeholder="Enter it if visible on the receipt"
                 />
                 <p className="mt-1.5 text-xs leading-5 text-[#829087]">
-                  If left blank, PAYLOCK will attempt OCR extraction from the uploaded receipt image[cite: 1].
+                  If left blank, PAYLOCK will attempt OCR extraction. CBE FT lookups use the last 8 digits of the expected merchant account.
                 </p>
               </div>
 
@@ -346,7 +346,7 @@ export default function UploadReceiptPage() {
                   placeholder="https://…"
                 />
                 <p className="mt-1.5 text-xs leading-5 text-[#829087]">
-                  Used for bank verification when only a direct confirmation link is issued.
+                  Use this if your bank provides a receipt link or the expected account digits are unavailable.
                 </p>
               </div>
             </div>
@@ -446,7 +446,7 @@ export default function UploadReceiptPage() {
             <div className="mt-5 flex items-start gap-2 rounded-xl bg-[#F6F8F5] p-3.5 text-xs leading-5 text-[#718077]">
               <ShieldCheck size={15} className="mt-0.5 shrink-0 text-[#527960]" />
               <p>
-                A receipt image alone does not confirm that money arrived[cite: 1]. Final confirmation requires authoritative verification against payment records[cite: 1].
+                A receipt image alone does not confirm that money arrived. Final confirmation requires authoritative verification against payment records.
               </p>
             </div>
 
@@ -519,40 +519,47 @@ export default function UploadReceiptPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#718077]">
-                  Verification result · {result.status.replaceAll("_", " ")}[cite: 1]
+                  Verification result · {result.status.replaceAll("_", " ")}
                 </p>
                 <h2 className="mt-1 font-semibold text-[#20372D]">
                   {result.canReleaseOrder ? "Payment verified" : "Payment needs attention"}
                 </h2>
                 {result.reason && <p className="mt-1 text-sm leading-5 text-[#718077]">{result.reason}</p>}
 
-                {/* Status Guidance Banners */}
-                {/* {!result.canReleaseOrder && (
-                  <p className="mt-2 text-sm font-medium text-[#9A3030]">
-                    The order is not approved for release. Matching form values or receipt text cannot replace a confirmed provider ledger result[cite: 1].
-                  </p>
-                )} */}
+                {result.status === "PENDING_PROVIDER" &&
+                  result.reason?.includes("HTTP 404") && (
+                    <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                      The provider endpoint could not be found. This is
+                      different from a transaction not being found. Check
+                      LINKSET_VERIFY_URL against the provider&apos;s documented
+                      POST endpoint, then retry. Keep the order on hold until
+                      the provider confirms the payment.
+                    </p>
+                  )}
 
-                {/* {
-                // result.status === "PENDING_PROVIDER" && (
-                //   <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-amber-50 p-2.5 text-xs text-amber-900 border border-amber-200">
-                //     <Clock size={15} className="mt-0.5 shrink-0 text-amber-700" />
-                //     <span>
-                //       Banking ledger service is unreachable or returned an error[cite: 1]. Check backend <code>LINKSET_API_KEY</code> and <code>LINKSET_VERIFY_URL</code> settings, then retry when the provider is active[cite: 1].
-                //     </span>
-                //   </div>
-                // )
-                } */}
+                {result.status === "PENDING_PROVIDER" &&
+                  result.reason?.includes("HTTP 502") && (
+                    <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                      The payment provider&apos;s gateway or an upstream
+                      payment service failed to return verification data. The
+                      receipt scan may show an amount, but there is no
+                      provider-confirmed settled amount yet. Retry later or
+                      contact the provider; keep the order on hold.
+                    </p>
+                  )}
 
                 {result.status === "NOT_FOUND" && (
                   <p className="mt-2 text-xs leading-5 text-[#718077]">
-                    The payment provider reported that this transaction reference was not found[cite: 1]. Ensure the reference is typed accurately from the bank SMS or slip[cite: 1].
+                    The payment provider reported that this transaction
+                    reference was not found. Ensure it matches the bank SMS or
+                    receipt.
                   </p>
                 )}
 
                 {result.status === "DUPLICATE_CLAIM" && (
                   <p className="mt-2 text-xs leading-5 text-red-700 font-semibold">
-                    Warning: This transaction reference was already credited to another order[cite: 1]. Receipt recycling detected[cite: 1].
+                    Warning: This transaction reference was already claimed
+                    on another order.
                   </p>
                 )}
               </div>
@@ -575,7 +582,7 @@ export default function UploadReceiptPage() {
                 <div className="flex items-start gap-2.5 border-b border-[#EDF0EB] bg-[#FFFBF2] px-5 py-3.5 text-sm text-[#725B38] sm:px-7">
                   <CircleAlert size={17} className="mt-0.5 shrink-0" />
                   <p className="leading-5">
-                    The receipt scan found {formatAmount(result.extractedAmount)}, while this order expects {formatAmount(Number(expectedAmount))}. Use the provider&apos;s settled payment details to make the final decision[cite: 1].
+                    The receipt scan found {formatAmount(result.extractedAmount)}, while this order expects {formatAmount(Number(expectedAmount))}. Use the provider&apos;s settled payment details to make the final decision.
                   </p>
                 </div>
               )}
@@ -590,7 +597,11 @@ export default function UploadReceiptPage() {
                 },
                 {
                   label: "Settled amount",
-                  value: formatAmount(result.settledAmount),
+                  value:
+                    result.status === "PENDING_PROVIDER" &&
+                    result.reason?.includes("HTTP 502")
+                      ? "Unavailable (provider error)"
+                      : formatAmount(result.settledAmount),
                   icon: <Banknote size={15} />,
                   mono: false,
                 },

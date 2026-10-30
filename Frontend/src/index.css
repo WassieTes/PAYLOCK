@@ -1,22 +1,85 @@
 
 @import "tailwindcss";
 
+@theme {
+  --color-white: hsl(72 18% 98%);
+  --color-black: hsl(148 24% 14%);
+  --color-canvas: hsl(78 19% 96%);
+  --color-surface: hsl(72 18% 98%);
+  --color-surface-muted: hsl(84 18% 94%);
+  --color-ink: hsl(149 31% 18%);
+  --color-ink-muted: hsl(145 10% 39%);
+  --color-brand: hsl(148 40% 24%);
+  --color-brand-soft: hsl(99 27% 91%);
+  --color-border: hsl(96 14% 87%);
+}
+
 :root {
   font-family: Inter, "Segoe UI", sans-serif;
-  color: #102f1b;
-  background: #d9b080;
+  color: hsl(149 31% 18%);
+  background: hsl(78 19% 96%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   scroll-behavior: smooth;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  background: hsl(78 19% 96%);
+  color: hsl(149 31% 18%);
+}
+
+section[id] {
+  scroll-margin-top: 6rem;
 }
 
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+:where(a, button, input, select, textarea) {
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid hsl(148 40% 24%);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: hsl(99 27% 84%);
+  color: hsl(149 31% 18%);
+}
+
+.paylock-mesh {
+  background-color: hsl(78 19% 96%);
+  background-image:
+    radial-gradient(ellipse at 82% 15%, hsl(94 27% 89% / 72%), transparent 42%),
+    radial-gradient(ellipse at 12% 88%, hsl(42 24% 92% / 76%), transparent 44%),
+    repeating-linear-gradient(
+      135deg,
+      hsl(148 24% 25% / 1.2%) 0,
+      hsl(148 24% 25% / 1.2%) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

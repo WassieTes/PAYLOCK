@@ -11,10 +11,18 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DevelopersService } from './developers.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { VerificationService } from '../verification/verification.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+type AuthenticatedRequest = Request & {
+  user: {
+    merchantId: string;
+  };
+};
 
 @Controller()
 export class DevelopersController {
@@ -26,27 +34,27 @@ export class DevelopersController {
   // ==================== DASHBOARD MANAGEMENT ====================
 
   @Get('dashboard/keys')
-  async getKeys(@Req() req: any) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.listKeys(merchantId);
+  @UseGuards(JwtAuthGuard)
+  async getKeys(@Req() req: AuthenticatedRequest) {
+    return this.devService.listKeys(req.user.merchantId);
   }
 
   @Post('dashboard/keys')
-  async generateKey(@Req() req: any, @Body('name') name: string) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.createKey(merchantId, name);
+  @UseGuards(JwtAuthGuard)
+  async generateKey(@Req() req: AuthenticatedRequest, @Body('name') name: string) {
+    return this.devService.createKey(req.user.merchantId, name);
   }
 
   @Delete('dashboard/keys/:id')
-  async revokeKey(@Req() req: any, @Param('id') id: string) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.revokeKey(merchantId, id);
+  @UseGuards(JwtAuthGuard)
+  async revokeKey(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.devService.revokeKey(req.user.merchantId, id);
   }
 
   @Get('dashboard/logs')
-  async getLogs(@Req() req: any) {
-    const merchantId = req.user?.id || req.user?.merchantId;
-    return this.devService.getLogs(merchantId);
+  @UseGuards(JwtAuthGuard)
+  async getLogs(@Req() req: AuthenticatedRequest) {
+    return this.devService.getLogs(req.user.merchantId);
   }
 
   // ==================== PUBLIC VERIFICATION API ====================

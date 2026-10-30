@@ -37,9 +37,10 @@ Receipt verification uses the server-side links.et API. Configure a valid
 `LINKSET_API_KEY` and `LINKSET_VERIFY_URL` (defaults to
 `https://links.et/api/verify`). PAYLOCK sends a JSON `POST` with the `x-api-key`
 header and either a `reference` or a full `url`. links.et only resolves a
-reference by itself for Telebirr; CBE FT references and some other providers
-require the bank's full receipt URL. PAYLOCK's verification endpoints accept
-that link as `receiptUrl` (or `url` on the developer API).
+reference by itself for Telebirr. For a CBE FT reference, PAYLOCK builds the
+documented CBE lookup URL using the last 8 digits of the expected receiver
+account; a bank receipt URL can also be supplied as `receiptUrl` (or `url` on
+the developer API).
 
 The adapter reads the authoritative `receipt` object from links.et's
 `{ ok: true, receipt: ... }` response. It uses provider-specific amount fields
@@ -48,8 +49,11 @@ totals that may include fees, and compares the returned receiver with the
 merchant's expected receiver. Receipt screenshots are OCR-processed locally
 and are not forwarded to links.et. A provider error, incomplete response, or
 unmatched receiver never authorizes release. If a provider masks the receiver
-account, the result requires review rather than treating a partial account
-match as proof.
+account, PAYLOCK compares every visible prefix and suffix digit with the
+expected merchant account and, when available, the receiver account extracted
+from the uploaded receipt. A match can authorize release when the provider has
+also confirmed the amount and transaction; because masked digits cannot prove
+the full account number, this is a partial-account match.
 
 ## Compile and run the project
 
